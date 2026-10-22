@@ -1,0 +1,18 @@
+{
+  "name": "peer-learning",
+  "private": true,
+  "description": "Оюутан хоорондын харилцан суралцах систем (монолит: React + Express + PostgreSQL)",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server ci --omit=dev && npm --prefix client ci --include=dev && npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "db:migrate": "npm --prefix server run db:migrate",
+    "db:seed": "npm --prefix server run db:seed",
+    "test": "npm --prefix server test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

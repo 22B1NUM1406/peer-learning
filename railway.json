@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "npm run build"
+  },
+  "deploy": {
+    "startCommand": "npm run db:migrate && npm run db:seed && npm start",
+    "healthcheckPath": "/api/health",
+    "restartPolicyType": "ON_FAILURE",
+    "healthcheckTimeout": 120
+  }
+}
