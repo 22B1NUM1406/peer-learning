@@ -1,4 +1,4 @@
-import { query } from '../../db.js';
+import { pool, query } from '../../db.js';
 
 // FR-07, FR-13: асуултын жагсаалт, хичээлээр шүүх, хайх, эрэмбэлэх.
 // tsQuery: service-д бэлтгэсэн 'үг1:* & үг2:*' хэлбэрийн мөр эсвэл null.
@@ -39,17 +39,25 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
   return rows;
 }
 
-// FR-25: pg_trgm-ийн similarity()-ээр гарчгийн төстэй байдлыг 0–1 хооронд тооцно
+// FR-25: pg_trgm-ийн similarity()-ээр гарчгийн төстэй байдлыг 0–1 хооронд тооцно.
+// `%` оператор нь гарчгийн GIN trigram индексийг (questions_title_trgm) ашигладаг бөгөөд
+// босгыг set_limit()-ээр тогтооно. Хоёр асуулга нэг холболт дээр ажиллах ёстой тул client авна.
 export async function similarQuestions(title, threshold, limit = 5) {
-  const { rows } = await query(
-    `SELECT q.id, q.title, s.name AS "subjectName",
-            q.accepted_answer_id IS NOT NULL AS "hasAccepted",
-            round(similarity(q.title, $1)::numeric, 2)::float AS score
-       FROM questions q JOIN subjects s ON s.id = q.subject_id
-      WHERE NOT q.is_hidden AND similarity(q.title, $1) >= $2
-      ORDER BY score DESC, q.created_at DESC
-      LIMIT $3`,
-    [title, threshold, limit],
-  );
-  return rows;
+  const client = await pool.connect();
+  try {
+    await client.query('SELECT set_limit($1)', [threshold]);
+    const { rows } = await client.query(
+      `SELECT q.id, q.title, s.name AS "subjectName",
+              q.accepted_answer_id IS NOT NULL AS "hasAccepted",
+              round(similarity(q.title, $1)::numeric, 2)::float AS score
+         FROM questions q JOIN subjects s ON s.id = q.subject_id
+        WHERE q.title % $1 AND NOT q.is_hidden
+        ORDER BY score DESC, q.created_at DESC
+        LIMIT $2`,
+      [title, limit],
+    );
+    return rows;
+  } finally {
+    client.release();
+  }
 }
