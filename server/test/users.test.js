@@ -17,7 +17,7 @@ beforeEach(async () => {
 after(() => pool.end());
 
 test('профайлаа засаж, бусдын профайлыг харна; имэйл харагдахгүй (FR-03, NFR-12)', async () => {
-  const upd = await as(bat).patch('/api/users/me', { name: 'Бат-Эрдэнэ', faculty: 'ХШУИС', year: 3 });
+  const upd = await as(bat).patch('/api/users/me', { name: 'Бат-Эрдэнэ', faculty: 'МТЭС', year: 3 });
   assert.equal(upd.status, 200);
   const res = await as(saraa).get(`/api/users/${bat.id}`);
   assert.equal(res.status, 200);
