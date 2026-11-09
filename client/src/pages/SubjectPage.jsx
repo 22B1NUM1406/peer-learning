@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { BookOpen, FileText, ImageIcon, Link2, Plus } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
@@ -21,8 +22,8 @@ export default function SubjectPage() {
   return (
     <>
       <div className="page-head">
-        <h1>{data.subject.name}</h1>
-        <Link to={`/questions/new?subject=${id}`} className="btn btn-primary">Энэ хичээлээр асуух</Link>
+        <h1 className="icon-title"><span className="subject-icon"><BookOpen size={20} /></span>{data.subject.name}</h1>
+        <Link to={`/questions/new?subject=${id}`} className="btn btn-primary"><Plus size={17} />Энэ хичээлээр асуух</Link>
       </div>
       <Tabs
         tabs={[['questions', 'Асуултууд'], ['resources', 'Материал'], ['helpers', 'Туслах боломжтой оюутнууд']]}
@@ -59,14 +60,14 @@ function Resources({ subjectId }) {
 
   return (
     <>
-      <div className="row-end"><Link to={`/resources/new?subject=${subjectId}`} className="btn btn-ghost">+ Материал нэмэх</Link></div>
+      <div className="row-end"><Link to={`/resources/new?subject=${subjectId}`} className="btn btn-ghost"><Plus size={17} />Материал нэмэх</Link></div>
       {loading && <Loading />}
       <ErrorText error={error} />
       {data?.resources.length === 0 && <Empty>Материал алга. Лекц, бие даалтын материалаа хуваалцаарай.</Empty>}
       <ul className="res-list">
         {data?.resources.map((r) => (
           <li key={r.id} className="card res">
-            <span className={`res-icon ${r.kind}`} aria-hidden="true">{r.kind === 'link' ? '🔗' : r.mimeType === 'application/pdf' ? 'PDF' : 'IMG'}</span>
+            <span className={`res-icon ${r.kind}`} aria-hidden="true">{r.kind === 'link' ? <Link2 size={20} /> : r.mimeType === 'application/pdf' ? <FileText size={20} /> : <ImageIcon size={20} />}</span>
             <div className="res-main">
               <a href={r.kind === 'link' ? r.url : r.fileUrl} target="_blank" rel="noopener noreferrer nofollow" className="res-title">{r.title}</a>
               {r.description && <p className="muted small">{r.description}</p>}

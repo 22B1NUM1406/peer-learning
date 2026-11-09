@@ -6,3 +6,4 @@ export const searchRoutes = Router();
 
 searchRoutes.get('/questions', c.list);
 searchRoutes.get('/questions/similar', c.similar);
+searchRoutes.get('/stats/community', c.communityStats);

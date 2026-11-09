@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BookOpen, Flag, FolderOpen, GraduationCap, House, LogOut, MessageCircle, MessageSquareText, Plus, Settings, User,
+} from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import { connectSocket } from '../lib/socket.js';
 import NotificationBell from './NotificationBell.jsx';
@@ -33,25 +36,41 @@ export default function Layout() {
   };
 
   const isAdmin = user.role === 'admin';
+  // "Хариулах" нь нүүрний "Хариултгүй" таб; "Материал" нь хичээлийн жагсаалтыг материалын горимоор нээнэ
+  const params = new URLSearchParams(location.search);
+  const onHome = location.pathname === '/';
+  const isUnanswered = onHome && params.get('sort') === 'unanswered';
+  const onSubjects = location.pathname === '/subjects';
+  const isResources = onSubjects && params.get('tab') === 'resources';
+  const cls = (active) => (active ? 'active' : undefined);
 
   return (
     <>
       <header className="topbar">
-        <Link to="/" className="brand">Харилцан суралцах</Link>
+        <Link to="/" title="Асуултууд" className="brand" aria-label="Нүүр хуудас">
+          <span className="brand-mark"><GraduationCap size={20} /></span>
+          <span className="brand-text">Харилцан суралцах<small>МУИС-ийн оюутнуудад</small></span>
+        </Link>
         <nav className="topnav" aria-label="Үндсэн цэс">
-          <NavLink to="/" end>Асуултууд</NavLink>
-          <NavLink to="/messages">Мессеж{newMessage && <span className="dot" aria-label="шинэ" />}</NavLink>
-          {isAdmin && <NavLink to="/admin/reports">Мэдээллүүд</NavLink>}
-          {isAdmin && <NavLink to="/admin/subjects">Хичээлүүд</NavLink>}
+          <Link to="/" className={cls(onHome && !isUnanswered)}><MessageSquareText size={17} /><span className="nav-label">Асуултууд</span></Link>
+          <Link to="/?sort=unanswered" title="Хариулах" className={cls(isUnanswered)}><MessageCircle size={17} /><span className="nav-label">Хариулах</span></Link>
+          <Link to="/subjects" title="Хичээлүүд" className={cls(onSubjects && !isResources)}><BookOpen size={17} /><span className="nav-label">Хичээлүүд</span></Link>
+          <Link to="/subjects?tab=resources" title="Материал" className={cls(isResources)}><FolderOpen size={17} /><span className="nav-label">Материал</span></Link>
+          <NavLink to="/messages" title="Мессеж">
+            <MessageCircle size={17} /><span className="nav-label">Мессеж</span>{newMessage && <span className="dot" aria-label="шинэ" />}
+          </NavLink>
+          {isAdmin && <span className="nav-sep" aria-hidden="true" />}
+          {isAdmin && <NavLink to="/admin/reports" title="Мэдээллүүд" aria-label="Мэдээллүүд"><Flag size={17} /><span className="nav-label-long">Мэдээллүүд</span></NavLink>}
+          {isAdmin && <NavLink to="/admin/subjects" title="Хичээл удирдах" aria-label="Хичээл удирдах"><Settings size={17} /><span className="nav-label-long">Хичээл удирдах</span></NavLink>}
         </nav>
         <div className="topbar-right">
-          <Link to="/questions/new" className="btn btn-primary btn-sm hide-mobile">Асуулт асуух</Link>
+          <Link to="/questions/new" className="btn btn-primary btn-sm hide-mobile" aria-label="Асуулт асуух"><Plus size={17} /><span className="btn-label">Асуулт асуух</span></Link>
           <NotificationBell />
           <Link to={`/users/${user.id}`} className="me-link" title="Миний профайл">
             <Avatar name={user.name} size={30} />
-            <span className="hide-mobile">{user.reputation} оноо</span>
+            <span className="me-points hide-mobile"><strong>{user.name}</strong><span>{user.reputation} оноо</span></span>
           </Link>
-          <button className="btn btn-ghost btn-sm" onClick={onLogout}>Гарах</button>
+          <button className="icon-btn" onClick={onLogout} aria-label="Гарах" title="Гарах"><LogOut size={19} /></button>
         </div>
       </header>
 
@@ -60,12 +79,13 @@ export default function Layout() {
       </main>
 
       <nav className="bottomnav" aria-label="Утасны цэс">
-        <NavLink to="/" end>Нүүр</NavLink>
-        <NavLink to="/questions/new">Асуух</NavLink>
-        <NavLink to="/messages">Мессеж{newMessage && <span className="dot" />}</NavLink>
+        <NavLink to="/" end><House size={21} />Нүүр</NavLink>
+        <NavLink to="/subjects"><BookOpen size={21} />Хичээл</NavLink>
+        <NavLink to="/questions/new" className="ask"><span className="ask-ico"><Plus size={19} /></span>Асуух</NavLink>
+        <NavLink to="/messages"><MessageCircle size={21} />Мессеж{newMessage && <span className="dot" />}</NavLink>
         {isAdmin
-          ? <NavLink to="/admin/reports">Админ</NavLink>
-          : <NavLink to={`/users/${user.id}`}>Профайл</NavLink>}
+          ? <NavLink to="/admin/reports"><Flag size={21} />Админ</NavLink>
+          : <NavLink to={`/users/${user.id}`}><User size={21} />Профайл</NavLink>}
       </nav>
     </>
   );

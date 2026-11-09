@@ -16,10 +16,13 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
     params.push(authorId);
     where.push(`q.author_id = $${params.length}`);
   }
-  // Хайлттай үед хамаарлаар (ts_rank), эс бөгөөс шинэ нь эхэнд
+  // Хайлттай үед хамаарлаар (ts_rank); "Түгээмэл" бол хариултуудын авсан "тустай" үнэлгээгээр;
+  // эс бөгөөс шинэ нь эхэнд
   const order = tsQuery
     ? "ts_rank(q.search_vector, to_tsquery('simple', $2)) DESC, q.created_at DESC"
-    : 'q.created_at DESC';
+    : sort === 'popular'
+      ? 'vote_count DESC, answer_count DESC, q.created_at DESC'
+      : 'q.created_at DESC';
 
   const { rows } = await query(
     `SELECT q.id, q.title, LEFT(q.body, 220) AS excerpt, q.created_at, q.is_anonymous,
@@ -27,6 +30,8 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
             s.id AS subject_id, s.name AS subject_name,
             q.accepted_answer_id IS NOT NULL AS has_accepted,
             (SELECT COUNT(*)::int FROM answers a WHERE a.question_id = q.id AND NOT a.is_hidden) AS answer_count,
+            (SELECT COUNT(*)::int FROM votes v JOIN answers a ON a.id = v.answer_id
+              WHERE a.question_id = q.id AND NOT a.is_hidden) AS vote_count,
             COUNT(*) OVER()::int AS total
        FROM questions q
        JOIN users u ON u.id = q.author_id
@@ -60,4 +65,46 @@ export async function similarQuestions(title, threshold, limit = 5) {
   } finally {
     client.release();
   }
+}
+
+// Нүүр хуудасны хажуугийн самбар: бодит өгөгдлөөс тооцсон гурван жагсаалт ба нийт тоо.
+// Зөвхөн уншина; нуусан контент, түдгэлзүүлсэн хэрэглэгч, админыг тооцохгүй.
+export async function communityStats(days, limit = 5) {
+  const [trending, active, top, totals] = await Promise.all([
+    query(
+      `SELECT s.id, s.name, COUNT(q.id)::int AS "questionCount"
+         FROM subjects s JOIN questions q ON q.subject_id = s.id
+        WHERE s.is_active AND NOT q.is_hidden AND q.created_at > now() - make_interval(days => $1)
+        GROUP BY s.id
+        ORDER BY "questionCount" DESC, s.name
+        LIMIT $2`, [days, limit]),
+    query(
+      `SELECT u.id, u.name, COUNT(a.id)::int AS "answerCount"
+         FROM users u JOIN answers a ON a.author_id = u.id
+        WHERE u.role = 'student' AND u.status = 'active'
+          AND NOT a.is_hidden AND a.created_at > now() - make_interval(days => $1)
+        GROUP BY u.id
+        ORDER BY "answerCount" DESC, u.name
+        LIMIT $2`, [days, limit]),
+    query(
+      `SELECT u.id, u.name, u.reputation,
+              (SELECT COUNT(*)::int FROM questions q JOIN answers a ON a.id = q.accepted_answer_id
+                WHERE a.author_id = u.id AND NOT a.is_hidden AND NOT q.is_hidden) AS "acceptedCount"
+         FROM users u
+        WHERE u.role = 'student' AND u.status = 'active' AND u.reputation > 0
+        ORDER BY u.reputation DESC, u.name
+        LIMIT $1`, [limit]),
+    query(
+      `SELECT (SELECT COUNT(*)::int FROM questions WHERE NOT is_hidden) AS questions,
+              (SELECT COUNT(*)::int FROM questions WHERE NOT is_hidden AND accepted_answer_id IS NOT NULL) AS "acceptedQuestions",
+              (SELECT COUNT(*)::int FROM answers WHERE NOT is_hidden) AS answers,
+              (SELECT COUNT(*)::int FROM users WHERE role = 'student' AND status = 'active') AS students`),
+  ]);
+  return {
+    days,
+    totals: totals.rows[0],
+    trendingSubjects: trending.rows,
+    activeStudents: active.rows,
+    topContributors: top.rows,
+  };
 }

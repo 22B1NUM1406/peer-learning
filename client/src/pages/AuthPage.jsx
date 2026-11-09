@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GraduationCap } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
 
@@ -35,6 +36,7 @@ export default function AuthPage() {
   return (
     <div className="auth-wrap">
       <div className="card auth-card">
+        <span className="brand-mark auth-mark" aria-hidden="true"><GraduationCap size={26} /></span>
         <h1 className="auth-title">Харилцан суралцах систем</h1>
         <p className="muted auth-sub">Хичээлээ бие биедээ асууж, тайлбарлаж суралцъя</p>
 

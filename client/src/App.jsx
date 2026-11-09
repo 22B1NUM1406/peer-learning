@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage.jsx';
 import AskPage from './pages/AskPage.jsx';
 import QuestionPage from './pages/QuestionPage.jsx';
 import SubjectPage from './pages/SubjectPage.jsx';
+import SubjectsPage from './pages/SubjectsPage.jsx';
 import ResourceNewPage from './pages/ResourceNewPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import MessagesPage from './pages/MessagesPage.jsx';
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/questions/new" element={<AskPage />} />                           {/* P3 */}
         <Route path="/questions/:id/edit" element={<AskPage />} />                      {/* P3 засах */}
         <Route path="/questions/:id" element={<QuestionPage />} />                      {/* P4 */}
+        <Route path="/subjects" element={<SubjectsPage />} />                           {/* Хичээлүүд, материал */}
         <Route path="/subjects/:id" element={<SubjectPage />} />                        {/* P5 */}
         <Route path="/resources/new" element={<ResourceNewPage />} />                   {/* P6 */}
         <Route path="/users/:id" element={<ProfilePage />} />                           {/* P7 */}

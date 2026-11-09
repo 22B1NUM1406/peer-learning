@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { EyeOff } from 'lucide-react';
 import { initials, timeAgo } from '../lib/format.js';
 
 // Олон хуудсанд давтагддаг жижиг бүрэлдэхүүнүүд
@@ -22,7 +23,7 @@ export function AuthorLine({ author, createdAt, anonymous }) {
           {author.reputation != null && <span className="rep" title="Оноо">{author.reputation}</span>}
         </Link>
       ) : (
-        <span className="muted">Нэрээ нуусан оюутан</span>
+        <span className="anon"><span className="anon-avatar" aria-hidden="true"><EyeOff size={12} /></span>Нэрээ нуусан оюутан</span>
       )}
       {anonymous && author && <span className="tag tag-muted">нэрээ нуусан</span>}
       {createdAt && <span className="muted"> · {timeAgo(createdAt)}</span>}
@@ -49,16 +50,17 @@ export function Body({ text }) {
   return <div className="body-text">{text}</div>;
 }
 
-export function Tabs({ tabs, value, onChange }) {
+// variant="segmented" нь нүүр хуудасны товч хэлбэрийн таб; tabs: [[key, label, Icon?]]
+export function Tabs({ tabs, value, onChange, variant }) {
   return (
-    <div className="tabs-inline" role="tablist">
-      {tabs.map(([key, label]) => (
+    <div className={variant === 'segmented' ? 'segmented' : 'tabs-inline'} role="tablist">
+      {tabs.map(([key, label, Icon]) => (
         <button
           key={key} role="tab" aria-selected={value === key}
           className={value === key ? 'tab active' : 'tab'}
           onClick={() => onChange(key)}
         >
-          {label}
+          {Icon && <Icon size={15} />}{label}
         </button>
       ))}
     </div>

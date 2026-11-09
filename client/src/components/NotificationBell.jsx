@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell, CheckCheck } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { timeAgo } from '../lib/format.js';
 
@@ -48,16 +49,14 @@ export default function NotificationBell() {
   return (
     <div className="bell" ref={ref}>
       <button className="icon-btn" aria-label={`Мэдэгдэл, уншаагүй ${data.unread}`} onClick={() => setOpen(!open)}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" />
-        </svg>
+        <Bell size={20} />
         {data.unread > 0 && <span className="badge">{data.unread > 9 ? '9+' : data.unread}</span>}
       </button>
       {open && (
         <div className="dropdown card">
           <div className="dropdown-head">
             <strong>Мэдэгдэл</strong>
-            {data.unread > 0 && <button className="link-btn" onClick={readAll}>Бүгдийг уншсан</button>}
+            {data.unread > 0 && <button className="link-btn small" onClick={readAll}><CheckCheck size={15} />Бүгдийг уншсан</button>}
           </div>
           {data.notifications.length === 0 && <p className="muted pad">Мэдэгдэл алга</p>}
           <ul>

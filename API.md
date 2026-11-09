@@ -53,7 +53,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| GET | `/api/subjects` | 👤 | Идэвхтэй хичээлүүд |
+| GET | `/api/subjects` | 👤 | Идэвхтэй хичээлүүд, тус бүрийн асуултын тоо (`questionCount`) |
 | GET | `/api/subjects/:id` | 👤 | Нэг хичээл |
 | GET | `/api/subjects/:id/helpers` | 👤 | Туслах боломжтой оюутнуудыг тухайн хичээлд авсан "тусалсан" хариултын тоогоор эрэмбэлнэ |
 | POST | `/api/admin/subjects` | 🛡 | `{name}` |
@@ -63,7 +63,8 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| GET | `/api/questions` | 👤 | `?subject=&sort=new\|unanswered&q=&page=`. `q` өгвөл бүрэн текст хайлт (FR-13) хийнэ |
+| GET | `/api/questions` | 👤 | `?subject=&sort=new\|unanswered\|popular&q=&page=`. `q` өгвөл бүрэн текст хайлт (FR-13) хийнэ. Асуулт бүрд `answerCount`, `voteCount` (хариултуудын авсан "тустай" үнэлгээний нийлбэр). `popular` нь `voteCount`-оор эрэмбэлнэ |
+| GET | `/api/stats/community` | 👤 | Нүүрний хажуугийн самбар: сүүлийн 7 хоногт хамгийн их асуулттай хичээл, хамгийн их хариулсан оюутан, хамгийн их оноотой оюутан (тус бүр 5 хүртэл) ба нийт тоо. Нуусан контент, түдгэлзүүлсэн хэрэглэгч, админыг тооцохгүй |
 | GET | `/api/questions/similar` | 👤 | `?title=`: pg_trgm-ээр хамгийн төстэй 5 асуултыг буцаана (FR-25). Frontend-ээс 300 мс debounce хийж дуудна |
 | POST | `/api/questions` | 👤 | `{title, body, subjectId, isAnonymous}` |
 | GET | `/api/questions/:id` | 👤 | Асуулт, хариултууд (эхэнд "тусалсан", дараа нь үнэлгээгээр), сэтгэгдлүүд. Хариулт бүрд `votedByMe` талбар |

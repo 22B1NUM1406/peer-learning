@@ -28,6 +28,7 @@ export async function listQuestions({ q, subjectId, sort, page, limit, offset },
       author: authorFor(r, viewer, { anonymous: r.is_anonymous }),
       isAnonymous: r.is_anonymous,
       answerCount: r.answer_count,
+      voteCount: r.vote_count,
       hasAccepted: r.has_accepted,
     })),
   };
@@ -39,4 +40,10 @@ export const SIMILARITY_THRESHOLD = Number(process.env.SIMILARITY_THRESHOLD) || 
 export async function similar(title) {
   if (title.length < 5) return [];
   return repo.similarQuestions(title, SIMILARITY_THRESHOLD);
+}
+
+// Хажуугийн самбарын статистик: сүүлийн 7 хоногийн идэвх ба бүх хугацааны оноо
+export const STATS_DAYS = 7;
+export function communityStats() {
+  return repo.communityStats(STATS_DAYS);
 }

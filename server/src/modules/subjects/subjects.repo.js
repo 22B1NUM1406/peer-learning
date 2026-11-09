@@ -2,10 +2,11 @@ import { query } from '../../db.js';
 
 export async function listSubjects({ includeInactive = false } = {}) {
   const { rows } = await query(
-    `SELECT id, name, is_active AS "isActive"
-       FROM subjects
-      WHERE $1 OR is_active
-      ORDER BY name`,
+    `SELECT s.id, s.name, s.is_active AS "isActive",
+            (SELECT COUNT(*)::int FROM questions q WHERE q.subject_id = s.id AND NOT q.is_hidden) AS "questionCount"
+       FROM subjects s
+      WHERE $1 OR s.is_active
+      ORDER BY s.name`,
     [includeInactive],
   );
   return rows;

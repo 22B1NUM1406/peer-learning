@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, CircleCheck, MessageSquareText, Pencil, ThumbsUp, Trash2 } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
@@ -39,28 +40,31 @@ export default function QuestionPage() {
   };
 
   return (
-    <article className="question-page">
-      <div className="crumbs"><Link to={`/subjects/${q.subject.id}`} className="tag">{q.subject.name}</Link></div>
-      <h1>{q.title}</h1>
-      {q.isHidden && <p className="warn">Энэ асуулт нуугдсан. Зөвхөн админд харагдаж байна.</p>}
-      <div className="q-meta"><AuthorLine author={q.author} createdAt={q.createdAt} anonymous={q.isAnonymous} /></div>
-      <Body text={q.body} />
+    <article className="question-page narrow">
+      <Link to="/" className="back-link small"><ArrowLeft size={15} />Асуултууд</Link>
+      <section className="card question-card">
+        <div className="crumbs"><Link to={`/subjects/${q.subject.id}`} className="tag">{q.subject.name}</Link></div>
+        <h1>{q.title}</h1>
+        {q.isHidden && <p className="warn">Энэ асуулт нуугдсан. Зөвхөн админд харагдаж байна.</p>}
+        <div className="q-meta"><AuthorLine author={q.author} createdAt={q.createdAt} anonymous={q.isAnonymous} /></div>
+        <Body text={q.body} />
 
-      <div className="actions">
-        {q.isMine && <Link to={`/questions/${q.id}/edit`} className="link-btn">Засах</Link>}
-        {q.canDelete && <button className="link-btn danger" onClick={deleteQuestion}>Устгах</button>}
-        {!q.isMine && <ReportButton targetType="question" targetId={q.id} />}
-      </div>
+        <div className="actions">
+          {q.isMine && <Link to={`/questions/${q.id}/edit`} className="link-btn"><Pencil size={14} />Засах</Link>}
+          {q.canDelete && <button className="link-btn danger" onClick={deleteQuestion}><Trash2 size={14} />Устгах</button>}
+          {!q.isMine && <ReportButton targetType="question" targetId={q.id} />}
+        </div>
 
-      <Comments
-        comments={q.comments}
-        postUrl={`/questions/${q.id}/comments`}
-        onChange={() => run(async () => {})}
-      />
+        <Comments
+          comments={q.comments}
+          postUrl={`/questions/${q.id}/comments`}
+          onChange={() => run(async () => {})}
+        />
+      </section>
 
       <ErrorText error={actionError} />
 
-      <h2 className="section-title">{q.answers.length} хариулт</h2>
+      <h2 className="section-title icon-title"><MessageSquareText size={18} />{q.answers.length} хариулт</h2>
       {q.answers.length === 0 && <p className="muted">Хариулт алга. Анхны хариултыг та бичээрэй.</p>}
       <ul className="answers">
         {q.answers.map((a) => (
@@ -99,17 +103,17 @@ function Answer({ a, question, run }) {
           title={a.isMine ? 'Өөрийн хариултыг үнэлэх боломжгүй' : 'Тустай'}
           aria-pressed={a.votedByMe}
         >
-          ▲<span className="vote-count">{a.voteCount}</span><span className="vote-label">Тустай</span>
+          <ThumbsUp size={16} /><span className="vote-count">{a.voteCount}</span><span className="vote-label">Тустай</span>
         </button>
         {question.isMine && (
           <button className={`accept-btn ${a.isAccepted ? 'on' : ''}`} onClick={toggleAccept}
             title={a.isAccepted ? '“Тусалсан”-ыг болиулах' : '“Тусалсан” гэж тэмдэглэх'} aria-pressed={a.isAccepted}>
-            ✓
+            <Check size={20} />
           </button>
         )}
       </div>
       <div className="answer-main">
-        {a.isAccepted && <div className="accepted-label">✓ Асуугчид тусалсан хариулт</div>}
+        {a.isAccepted && <div className="accepted-label"><CircleCheck size={16} />Асуугчид тусалсан хариулт</div>}
         {a.isHidden && <p className="warn">Нуугдсан хариулт</p>}
         {editing ? (
           <div className="form">
@@ -125,8 +129,8 @@ function Answer({ a, question, run }) {
         <div className="answer-foot">
           <AuthorLine author={a.author} createdAt={a.createdAt} />
           <span className="actions">
-            {a.isMine && !editing && <button className="link-btn" onClick={() => setEditing(true)}>Засах</button>}
-            {a.isMine && <button className="link-btn danger" onClick={remove}>Устгах</button>}
+            {a.isMine && !editing && <button className="link-btn" onClick={() => setEditing(true)}><Pencil size={14} />Засах</button>}
+            {a.isMine && <button className="link-btn danger" onClick={remove}><Trash2 size={14} />Устгах</button>}
             {!a.isMine && <ReportButton targetType="answer" targetId={a.id} />}
           </span>
         </div>
