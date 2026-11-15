@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { useApi, useSubjects } from '../lib/hooks.js';
+import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { timeAgo } from '../lib/format.js';
 import { Avatar, Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
@@ -53,6 +53,7 @@ export default function ProfilePage() {
 
 function EditProfile({ user, onSaved }) {
   const subjects = useSubjects();
+  const schools = useSchools();
   const { refresh } = useAuth();
   const [form, setForm] = useState({ name: user.name, faculty: user.faculty ?? '', year: user.year ?? '' });
   const [helpIds, setHelpIds] = useState(user.helpSubjects.map((s) => s.id));
@@ -74,7 +75,14 @@ function EditProfile({ user, onSaved }) {
     <form onSubmit={save} className="card form pad-lg">
       <div className="grid-2">
         <label>Нэр<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} maxLength={100} /></label>
-        <label>Бүрэлдэхүүн сургууль<input value={form.faculty} onChange={(e) => setForm({ ...form, faculty: e.target.value })} maxLength={150} /></label>
+        <label>Бүрэлдэхүүн сургууль
+          {/* FR-26: жагсаалтаас сонгоно. Өмнө нь гараар бичсэн утга жагсаалтад байхгүй бол хэвээр харагдана. */}
+          <select value={form.faculty} onChange={(e) => setForm({ ...form, faculty: e.target.value })}>
+            <option value="">—</option>
+            {form.faculty && !schools.some((s) => s.shortName === form.faculty) && <option value={form.faculty}>{form.faculty}</option>}
+            {schools.map((s) => <option key={s.id} value={s.shortName}>{s.shortName} — {s.name}</option>)}
+          </select>
+        </label>
         <label>Курс
           <select value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })}>
             <option value="">—</option>
@@ -87,7 +95,7 @@ function EditProfile({ user, onSaved }) {
         <div className="check-grid">
           {subjects.map((s) => (
             <label key={s.id} className="check">
-              <input type="checkbox" checked={helpIds.includes(s.id)} onChange={() => toggle(s.id)} /> {s.name}
+              <input type="checkbox" checked={helpIds.includes(s.id)} onChange={() => toggle(s.id)} /> {subjectLabel(s)}
             </label>
           ))}
         </div>

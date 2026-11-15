@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CircleHelp, Flame, Plus, Search, Sparkles } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
-import { useApi, useDebounced, useSubjects } from '../lib/hooks.js';
+import { subjectLabel, useApi, useDebounced, useSchools, useSubjects } from '../lib/hooks.js';
 import QuestionCard from '../components/QuestionCard.jsx';
 import CommunitySidebar from '../components/CommunitySidebar.jsx';
 import { Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
@@ -15,9 +15,11 @@ const SORTS = [['new', 'Шинэ', Sparkles], ['unanswered', 'Хариултгү
 export default function HomePage() {
   const { user } = useAuth();
   const subjects = useSubjects();
+  const schools = useSchools();
   const { data: stats } = useApi('/stats/community');
   const [params, setParams] = useSearchParams();
   const subject = params.get('subject') ?? '';
+  const school = params.get('school') ?? '';
   const sort = params.get('sort') ?? 'new';
   const [text, setText] = useState(params.get('q') ?? '');
   const q = useDebounced(text.trim(), 350);
@@ -29,9 +31,12 @@ export default function HomePage() {
 
   // Шүүлтүүрийг URL-д хадгална: хуудсыг дахин ачаалах, холбоос хуваалцахад хадгалагдана
   const update = (changes) => {
-    const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(changes)) (v ? next.set(k, v) : next.delete(k));
-    setParams(next, { replace: true });
+    // Функцээр шинэчилнэ: хайлтын саатсан (debounce) шинэчлэлт сүүлд сонгосон шүүлтүүрийг дарж бичихгүй
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(changes)) (v ? next.set(k, v) : next.delete(k));
+      return next;
+    }, { replace: true });
   };
 
   useEffect(() => { update({ q }); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -40,7 +45,7 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      const d = await api('/questions', { params: { q, subject, sort, page } });
+      const d = await api('/questions', { params: { q, subject, school, sort, page } });
       setItems((prev) => (page === 1 ? d.questions : [...prev, ...d.questions]));
       setMeta({ page: d.page, total: d.total, pageSize: d.pageSize });
     } catch (err) {
@@ -50,7 +55,10 @@ export default function HomePage() {
     }
   };
 
-  useEffect(() => { load(1); }, [q, subject, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(1); }, [q, subject, school, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Сургууль сонгосон бол хичээлийн жагсаалтыг тэр сургуулийнхаар хязгаарлана
+  const subjectOptions = school ? subjects.filter((s) => String(s.schoolId) === school) : subjects;
 
   const hasMore = items.length < meta.total;
   const firstName = user.name.split(/\s+/)[0];
@@ -89,10 +97,16 @@ export default function HomePage() {
             value={sort}
             onChange={(v) => update({ sort: v === 'new' ? '' : v })}
           />
-          <select aria-label="Хичээл" value={subject} onChange={(e) => update({ subject: e.target.value })}>
-            <option value="">Бүх хичээл</option>
-            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <div className="filter-selects">
+            <select aria-label="Бүрэлдэхүүн сургууль" value={school} onChange={(e) => update({ school: e.target.value, subject: '' })}>
+              <option value="">Бүх сургууль</option>
+              {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName}</option>)}
+            </select>
+            <select aria-label="Хичээл" value={subject} onChange={(e) => update({ subject: e.target.value })}>
+              <option value="">Бүх хичээл</option>
+              {subjectOptions.map((s) => <option key={s.id} value={s.id}>{subjectLabel(s)}</option>)}
+            </select>
+          </div>
         </div>
         {q && !loading && <p className="result-note">“{q}” — {meta.total} асуулт олдлоо</p>}
 

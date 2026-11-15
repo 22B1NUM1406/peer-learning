@@ -22,7 +22,18 @@ export default function SubjectPage() {
   return (
     <>
       <div className="page-head">
-        <h1 className="icon-title"><span className="subject-icon"><BookOpen size={20} /></span>{data.subject.name}</h1>
+        <div className="icon-title">
+          <span className="subject-icon"><BookOpen size={20} /></span>
+          <div>
+            {data.subject.code && <span className="subject-code block">{data.subject.code}</span>}
+            <h1 className="no-top" style={{ marginBottom: 0 }}>{data.subject.name}</h1>
+            {data.subject.schoolId && (
+              <Link to={`/subjects?school=${data.subject.schoolId}`} className="muted small">
+                {[data.subject.schoolShortName, data.subject.departmentName].filter(Boolean).join(' · ')}
+              </Link>
+            )}
+          </div>
+        </div>
         <Link to={`/questions/new?subject=${id}`} className="btn btn-primary"><Plus size={17} />Энэ хичээлээр асуух</Link>
       </div>
       <Tabs

@@ -25,6 +25,15 @@ export function useSubjects() {
   return data?.subjects ?? [];
 }
 
+// МУИС-ийн бүрэлдэхүүн сургууль, тэнхимүүд (FR-26)
+export function useSchools() {
+  const { data } = useApi('/schools');
+  return data?.schools ?? [];
+}
+
+// Хичээлийн харагдах нэр: код байвал урд нь (ICSI202 · Өгөгдлийн бүтэц)
+export const subjectLabel = (s) => (s.code ? `${s.code} · ${s.name}` : s.name);
+
 // Бичих бүрд биш, зогссоны дараа (ms) утгыг шинэчилнэ: ижил асуулт, хайлтад
 export function useDebounced(value, ms = 300) {
   const [v, setV] = useState(value);

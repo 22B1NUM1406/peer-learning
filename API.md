@@ -53,7 +53,8 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| GET | `/api/subjects` | 👤 | Идэвхтэй хичээлүүд, тус бүрийн асуултын тоо (`questionCount`) |
+| GET | `/api/subjects` | 👤 | Идэвхтэй хичээлүүд. `?school=&department=`-аар шүүнэ. Хичээл бүрд `code`, `schoolId`, `schoolShortName`, `departmentId`, `departmentName`, `questionCount` |
+| GET | `/api/schools` | 👤 | Бүрэлдэхүүн сургуулиуд (дарааллаар), тус бүрийн тэнхимүүд ба идэвхтэй хичээлийн тоо (FR-26) |
 | GET | `/api/subjects/:id` | 👤 | Нэг хичээл |
 | GET | `/api/subjects/:id/helpers` | 👤 | Туслах боломжтой оюутнуудыг тухайн хичээлд авсан "тусалсан" хариултын тоогоор эрэмбэлнэ |
 | POST | `/api/admin/subjects` | 🛡 | `{name}` |
@@ -63,7 +64,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| GET | `/api/questions` | 👤 | `?subject=&sort=new\|unanswered\|popular&q=&page=`. `q` өгвөл бүрэн текст хайлт (FR-13) хийнэ. Асуулт бүрд `answerCount`, `voteCount` (хариултуудын авсан "тустай" үнэлгээний нийлбэр). `popular` нь `voteCount`-оор эрэмбэлнэ |
+| GET | `/api/questions` | 👤 | `?subject=&school=&sort=new\|unanswered\|popular&q=&page=`. `q` өгвөл бүрэн текст хайлт (FR-13) хийнэ. Асуулт бүрд `answerCount`, `voteCount` (хариултуудын авсан "тустай" үнэлгээний нийлбэр). `popular` нь `voteCount`-оор эрэмбэлнэ |
 | GET | `/api/stats/community` | 👤 | Нүүрний хажуугийн самбар: сүүлийн 7 хоногт хамгийн их асуулттай хичээл, хамгийн их хариулсан оюутан, хамгийн их оноотой оюутан (тус бүр 5 хүртэл) ба нийт тоо. Нуусан контент, түдгэлзүүлсэн хэрэглэгч, админыг тооцохгүй |
 | GET | `/api/questions/similar` | 👤 | `?title=`: pg_trgm-ээр хамгийн төстэй 5 асуултыг буцаана (FR-25). Frontend-ээс 300 мс debounce хийж дуудна |
 | POST | `/api/questions` | 👤 | `{title, body, subjectId, isAnonymous}` |
@@ -147,3 +148,15 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 ## Хавтасны бүтэц
 
 README.md-ийн "Хавтасны бүтэц" хэсгийг үзнэ үү.
+
+## Бүрэлдэхүүн сургууль, тэнхим (FR-26) — 🛡 админ
+
+| Арга | Зам | Тайлбар |
+|---|---|---|
+| POST | `/api/admin/subjects` | `{ name, code?, schoolId?, departmentId? }`. Тэнхим өгвөл сургууль нь тэнхимээс тодорхойлогдоно; тэнхим сонгосон сургуульд харьяалагдахгүй бол 400; код давхардвал 409 |
+| PATCH | `/api/admin/subjects/:id` | Дээрх талбарууд ба `isActive`. `null` эсвэл хоосон утга нь талбарыг арилгана; сургуулийг солиход хуучин тэнхим арилна |
+| POST | `/api/admin/schools` | `{ name, shortName }` |
+| PATCH | `/api/admin/schools/:id` | `{ name?, shortName? }` |
+| POST | `/api/admin/schools/:id/departments` | `{ name }` |
+| PATCH | `/api/admin/departments/:id` | `{ name }` |
+

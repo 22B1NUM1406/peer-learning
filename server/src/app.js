@@ -10,7 +10,7 @@ import { sameOrigin } from './middleware/sameOrigin.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './lib/errors.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
-import { subjectRoutes, adminSubjectRoutes } from './modules/subjects/subjects.routes.js';
+import { subjectRoutes, schoolRoutes, adminSubjectRoutes, adminSchoolRoutes } from './modules/subjects/subjects.routes.js';
 import { userRoutes } from './modules/users/users.routes.js';
 import { searchRoutes } from './modules/search/search.routes.js';
 import { qaRoutes } from './modules/qa/qa.routes.js';
@@ -58,8 +58,10 @@ export function createApp() {
   // Үүнээс доош бүх API нэвтрэлт шаардана (NFR-03)
   api.use(requireAuth);
   api.use('/admin/subjects', adminSubjectRoutes);
+  api.use('/admin', adminSchoolRoutes);
   api.use('/admin', adminModerationRoutes);
   api.use('/subjects', subjectRoutes);
+  api.use('/schools', schoolRoutes);
   api.use(userRoutes);
   api.use(searchRoutes);      // '/questions/similar' нь '/questions/:id'-ээс өмнө байх ёстой
   api.use(qaRoutes);

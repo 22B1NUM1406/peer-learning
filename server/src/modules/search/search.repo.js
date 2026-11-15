@@ -2,7 +2,7 @@ import { pool, query } from '../../db.js';
 
 // FR-07, FR-13: асуултын жагсаалт, хичээлээр шүүх, хайх, эрэмбэлэх.
 // tsQuery: service-д бэлтгэсэн 'үг1:* & үг2:*' хэлбэрийн мөр эсвэл null.
-export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit, offset }) {
+export async function listQuestions({ subjectId, schoolId, sort, tsQuery, authorId, limit, offset }) {
   const params = [subjectId ?? null, tsQuery, limit, offset];
   const where = [
     'NOT q.is_hidden',
@@ -11,6 +11,10 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
   ];
   if (sort === 'unanswered') {
     where.push('NOT EXISTS (SELECT 1 FROM answers a WHERE a.question_id = q.id AND NOT a.is_hidden)');
+  }
+  if (schoolId) {
+    params.push(schoolId);
+    where.push(`s.school_id = $${params.length}`);
   }
   if (authorId) {
     params.push(authorId);
@@ -27,7 +31,7 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
   const { rows } = await query(
     `SELECT q.id, q.title, LEFT(q.body, 220) AS excerpt, q.created_at, q.is_anonymous,
             q.author_id, u.name AS author_name, u.reputation AS author_reputation,
-            s.id AS subject_id, s.name AS subject_name,
+            s.id AS subject_id, s.name AS subject_name, s.code AS subject_code, sc.short_name AS school_short_name,
             q.accepted_answer_id IS NOT NULL AS has_accepted,
             (SELECT COUNT(*)::int FROM answers a WHERE a.question_id = q.id AND NOT a.is_hidden) AS answer_count,
             (SELECT COUNT(*)::int FROM votes v JOIN answers a ON a.id = v.answer_id
@@ -36,6 +40,7 @@ export async function listQuestions({ subjectId, sort, tsQuery, authorId, limit,
        FROM questions q
        JOIN users u ON u.id = q.author_id
        JOIN subjects s ON s.id = q.subject_id
+       LEFT JOIN schools sc ON sc.id = s.school_id
       WHERE ${where.join(' AND ')}
       ORDER BY ${order}
       LIMIT $3 OFFSET $4`,

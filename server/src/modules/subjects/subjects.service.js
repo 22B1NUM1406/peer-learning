@@ -1,11 +1,13 @@
-import { conflict, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, notFound } from '../../lib/errors.js';
 import * as repo from './subjects.repo.js';
 
 // FR-17: хичээлийг устгахгүй, идэвхгүй болгоно. Ингэснээр тухайн хичээлийн
 // өмнөх асуултууд мэдлэгийн санд хэвээр үлдэнэ.
+// FR-26: хичээлийг бүрэлдэхүүн сургууль, тэнхимд хамааруулж, кодоор нь ялгана.
 
-export const listActive = () => repo.listSubjects();
+export const listActive = (filters) => repo.listSubjects(filters);
 export const listAll = () => repo.listSubjects({ includeInactive: true });
+export const listSchools = () => repo.listSchools();
 
 export async function get(id) {
   const subject = await repo.findSubjectById(id);
@@ -13,22 +15,89 @@ export async function get(id) {
   return subject;
 }
 
-export async function create(name) {
+// Тэнхим сонгосон бол сургууль нь тэр тэнхимийнх байх ёстой. Сургуулийг өгөөгүй бол тэнхимээс авна.
+async function resolvePlacement({ schoolId, departmentId }) {
+  if (departmentId) {
+    const dept = await repo.findDepartment(departmentId);
+    if (!dept) throw badRequest('Тэнхим олдсонгүй');
+    if (schoolId && schoolId !== dept.schoolId) throw badRequest('Тэнхим сонгосон сургуульд харьяалагдахгүй байна');
+    return { schoolId: dept.schoolId, departmentId };
+  }
+  if (schoolId && !(await repo.schoolExists(schoolId))) throw badRequest('Сургууль олдсонгүй');
+  return { schoolId, departmentId };
+}
+
+function uniqueError(err) {
+  if (err.code !== '23505') return err;
+  if (err.constraint?.includes('code')) return conflict('Ийм кодтой хичээл бүртгэлтэй байна');
+  if (err.constraint?.includes('short_name')) return conflict('Ийм товчлолтой сургууль бүртгэлтэй байна');
+  if (err.constraint?.startsWith('schools')) return conflict('Ийм нэртэй сургууль бүртгэлтэй байна');
+  if (err.constraint?.startsWith('departments')) return conflict('Энэ сургуульд ийм нэртэй тэнхим бүртгэлтэй байна');
+  return conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
+}
+
+export async function create({ name, code, schoolId, departmentId }) {
+  const placement = await resolvePlacement({ schoolId, departmentId });
   try {
-    return await repo.createSubject(name);
+    return await repo.createSubject({ name, code, ...placement });
   } catch (err) {
-    if (err.code === '23505') throw conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
-    throw err;
+    throw uniqueError(err);
   }
 }
 
 export async function update(id, changes) {
+  const next = { ...changes };
+  if (changes.departmentId !== undefined || changes.schoolId !== undefined) {
+    const current = await repo.findSubjectById(id);
+    if (!current) throw notFound('Хичээл олдсонгүй');
+    // Сургуулийг солиход хуучин тэнхимийг хадгалахгүй (өөр сургуулийнх болох тул)
+    const schoolId = changes.schoolId !== undefined ? changes.schoolId : current.schoolId;
+    let departmentId = changes.departmentId !== undefined ? changes.departmentId : current.departmentId;
+    if (changes.departmentId === undefined && changes.schoolId !== undefined && changes.schoolId !== current.schoolId) departmentId = null;
+    Object.assign(next, await resolvePlacement({ schoolId, departmentId }));
+  }
   try {
-    const subject = await repo.updateSubject(id, changes);
+    const subject = await repo.updateSubject(id, next);
     if (!subject) throw notFound('Хичээл олдсонгүй');
     return subject;
   } catch (err) {
-    if (err.code === '23505') throw conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
-    throw err;
+    throw uniqueError(err);
+  }
+}
+
+export async function createSchool(data) {
+  try {
+    return await repo.createSchool(data);
+  } catch (err) {
+    throw uniqueError(err);
+  }
+}
+
+export async function updateSchool(id, data) {
+  try {
+    const school = await repo.updateSchool(id, data);
+    if (!school) throw notFound('Сургууль олдсонгүй');
+    return school;
+  } catch (err) {
+    throw uniqueError(err);
+  }
+}
+
+export async function createDepartment(schoolId, name) {
+  if (!(await repo.schoolExists(schoolId))) throw notFound('Сургууль олдсонгүй');
+  try {
+    return await repo.createDepartment(schoolId, name);
+  } catch (err) {
+    throw uniqueError(err);
+  }
+}
+
+export async function renameDepartment(id, name) {
+  try {
+    const dept = await repo.renameDepartment(id, name);
+    if (!dept) throw notFound('Тэнхим олдсонгүй');
+    return dept;
+  } catch (err) {
+    throw uniqueError(err);
   }
 }

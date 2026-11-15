@@ -13,8 +13,8 @@ export function toTsQuery(text) {
 
 export const PAGE_SIZE = 20;
 
-export async function listQuestions({ q, subjectId, sort, page, limit, offset }, viewer) {
-  const rows = await repo.listQuestions({ subjectId, sort, tsQuery: toTsQuery(q), limit, offset });
+export async function listQuestions({ q, subjectId, schoolId, sort, page, limit, offset }, viewer) {
+  const rows = await repo.listQuestions({ subjectId, schoolId, sort, tsQuery: toTsQuery(q), limit, offset });
   return {
     page,
     total: rows[0]?.total ?? 0,
@@ -24,7 +24,7 @@ export async function listQuestions({ q, subjectId, sort, page, limit, offset },
       title: r.title,
       excerpt: r.excerpt,
       createdAt: r.created_at,
-      subject: { id: r.subject_id, name: r.subject_name },
+      subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, schoolShortName: r.school_short_name },
       author: authorFor(r, viewer, { anonymous: r.is_anonymous }),
       isAnonymous: r.is_anonymous,
       answerCount: r.answer_count,

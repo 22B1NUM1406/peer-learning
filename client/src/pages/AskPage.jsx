@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { useDebounced, useSubjects } from '../lib/hooks.js';
+import { useDebounced, useSchools, useSubjects } from '../lib/hooks.js';
+import SubjectPicker from '../components/SubjectPicker.jsx';
 import { ErrorText, Loading } from '../components/ui.jsx';
 
 // P3: Асуулт асуух ба засах (FR-05, FR-06, FR-20, FR-25)
@@ -11,6 +12,7 @@ export default function AskPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const subjects = useSubjects();
+  const schools = useSchools();
 
   const [form, setForm] = useState({ title: '', body: '', subjectId: search.get('subject') ?? '', isAnonymous: false });
   const [loaded, setLoaded] = useState(!editing);
@@ -82,12 +84,13 @@ export default function AskPage() {
           </div>
         )}
 
-        <label>Хичээл
-          <select value={form.subjectId} onChange={set('subjectId')} required>
-            <option value="" disabled>Хичээл сонгоно уу</option>
-            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </label>
+        <div className="field">
+          <span className="field-label">Хичээл</span>
+          <SubjectPicker
+            subjects={subjects} schools={schools} value={form.subjectId} required
+            onChange={(subjectId) => setForm((f) => ({ ...f, subjectId }))}
+          />
+        </div>
 
         <label>Дэлгэрэнгүй
           <textarea value={form.body} onChange={set('body')} required minLength={10} maxLength={10000} rows={9}
