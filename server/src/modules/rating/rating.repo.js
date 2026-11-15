@@ -1,21 +1,39 @@
 // Rating-ийн бүх үйлдэл транзакц дотор явагдана: db нь транзакцын client.
 
-export async function insertVote(db, userId, answerId) {
+export async function insertVote(db, userId, answerId, awarded) {
   // PRIMARY KEY (user_id, answer_id) давхар үнэлгээг өгөгдлийн сангийн түвшинд хориглоно (NFR-10)
   const r = await db.query(
-    'INSERT INTO votes (user_id, answer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-    [userId, answerId],
+    'INSERT INTO votes (user_id, answer_id, awarded) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+    [userId, answerId, awarded],
   );
   return r.rowCount > 0;
 }
 
+// Устгасан үнэлгээ оноо өгсөн эсэхийг буцаана (null = үнэлгээ байгаагүй)
 export async function deleteVote(db, userId, answerId) {
-  const r = await db.query('DELETE FROM votes WHERE user_id = $1 AND answer_id = $2', [userId, answerId]);
-  return r.rowCount > 0;
+  const { rows } = await db.query('DELETE FROM votes WHERE user_id = $1 AND answer_id = $2 RETURNING awarded', [userId, answerId]);
+  return rows[0] ? rows[0].awarded : null;
 }
 
 export async function countVotes(db, answerId) {
   const { rows } = await db.query('SELECT COUNT(*)::int AS n FROM votes WHERE answer_id = $1', [answerId]);
+  return rows[0].n;
+}
+
+export async function countAwardedVotes(db, answerId) {
+  const { rows } = await db.query('SELECT COUNT(*)::int AS n FROM votes WHERE answer_id = $1 AND awarded', [answerId]);
+  return rows[0].n;
+}
+
+// Нэг үнэлэгчээс нэг хариулагчид сүүлийн 24 цагт оноо өгсөн үнэлгээний тоо.
+// pg_advisory_xact_lock: нэг хосын зэрэг хүсэлтүүд дараалж ажиллана, хязгаар зөрчигдөхгүй.
+export async function countAwardedToAuthor(db, voterId, authorId) {
+  await db.query('SELECT pg_advisory_xact_lock($1, $2)', [voterId, authorId]);
+  const { rows } = await db.query(
+    `SELECT COUNT(*)::int AS n FROM votes v JOIN answers a ON a.id = v.answer_id
+      WHERE v.user_id = $1 AND a.author_id = $2 AND v.awarded AND v.created_at > now() - interval '24 hours'`,
+    [voterId, authorId],
+  );
   return rows[0].n;
 }
 

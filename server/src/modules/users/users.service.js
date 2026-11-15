@@ -1,6 +1,7 @@
 import { notFound } from '../../lib/errors.js';
 import * as repo from './users.repo.js';
 import { findSubjectById } from '../subjects/subjects.repo.js';
+import { levelFor } from '../../lib/levels.js';
 
 // Профайл (FR-03, FR-04, FR-24). Имэйлийг хэзээ ч буцаахгүй (NFR-12).
 export async function getProfile(id, viewer) {
@@ -8,9 +9,42 @@ export async function getProfile(id, viewer) {
   if (!profile) throw notFound('Хэрэглэгч олдсонгүй');
   // Түдгэлзсэн хэрэглэгчийн профайлыг зөвхөн админ харна
   if (profile.status !== 'active' && viewer.role !== 'admin') throw notFound('Хэрэглэгч олдсонгүй');
-  const helpSubjects = await repo.listHelpSubjects(id);
-  return { ...profile, helpSubjects, isMe: viewer.id === id };
+  const isMe = viewer.id === id;
+  const [helpSubjects, activity, topSubjects] = await Promise.all([
+    repo.listHelpSubjects(id),
+    repo.subjectActivity(id, { includeAnonymous: isMe || viewer.role === 'admin' }),
+    repo.topHelperSubjects(id),
+  ]);
+  const { notifyNewQuestions, ...pub } = profile;
+  return {
+    ...pub,
+    // Мэдэгдлийн тохиргоо хувийн мэдээлэл тул зөвхөн өөрт нь
+    ...(isMe ? { notifyNewQuestions } : {}),
+    level: levelFor(profile.reputation),
+    badges: badgesFor(profile, topSubjects),
+    subjectActivity: activity,
+    helpSubjects,
+    isMe,
+  };
 }
+
+// Санал 4: тэмдэг. Тусдаа хүснэгтэд хадгалахгүй, бодит өгөгдлөөс тооцно (нуусан контент тооцогдохгүй).
+export function badgesFor(p, topSubjects = []) {
+  const list = [
+    { key: 'first_answer', name: 'Анхны хариулт', description: 'Анхны хариултаа бичсэн', earned: p.answerCount >= 1 },
+    { key: 'first_accepted', name: 'Анх тусалсан', description: 'Хариулт нь анх удаа “тусалсан” гэж тэмдэглэгдсэн', earned: p.acceptedCount >= 1 },
+    { key: 'helper_10', name: '10 удаа тусалсан', description: '10 хариулт нь “тусалсан” гэж тэмдэглэгдсэн', earned: p.acceptedCount >= 10 },
+    { key: 'useful_25', name: 'Тустай хариулагч', description: 'Хариултууд нь нийт 25 “тустай” үнэлгээ авсан', earned: p.votesReceived >= 25 },
+    { key: 'sharer', name: 'Материал хуваалцагч', description: '3 материал хуваалцсан', earned: p.resourceCount >= 3 },
+  ];
+  for (const s of topSubjects) {
+    list.push({ key: `top_${s.id}`, name: `${s.name}: шилдэг туслагч`, description: 'Энэ хичээлд хамгийн олон “тусалсан” хариулттай (3-аас доошгүй)', earned: true });
+  }
+  return list;
+}
+
+export const listBookmarks = async (userId) => (await repo.listBookmarks(userId))
+  .map(({ subject_id, subject_name, ...q }) => ({ ...q, subject: { id: subject_id, name: subject_name } }));
 
 export async function getQuestions(userId, viewer) {
   const includeAnonymous = viewer.id === userId || viewer.role === 'admin';

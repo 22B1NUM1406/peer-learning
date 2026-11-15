@@ -68,3 +68,16 @@ export async function deleteComment(req, res) {
   await service.deleteComment(req.user, requireId(req.params.id));
   res.status(204).end();
 }
+
+// PUT /api/questions/:id/bookmark, DELETE /api/questions/:id/bookmark
+export async function addBookmark(req, res) {
+  res.json(await service.bookmark(req.user, requireId(req.params.id), true));
+}
+export async function removeBookmark(req, res) {
+  res.json(await service.bookmark(req.user, requireId(req.params.id), false));
+}
+
+// GET /api/questions/:id/related
+export async function related(req, res) {
+  res.json({ questions: await service.related(req.user, requireId(req.params.id)) });
+}

@@ -10,6 +10,9 @@ const POLL_MS = 30000;
 const TEXT = {
   new_answer: 'Таны асуултад шинэ хариулт ирлээ',
   accepted: 'Таны хариултыг “тусалсан” гэж тэмдэглэлээ',
+  new_question: 'Таны туслах хичээлд шинэ асуулт ирлээ',
+  vote: 'Таны хариултыг “тустай” гэж үнэллээ',
+  followed_answer: 'Таны хадгалсан асуултад шинэ хариулт ирлээ',
 };
 
 export default function NotificationBell() {

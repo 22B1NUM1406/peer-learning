@@ -7,6 +7,7 @@ export const userRoutes = Router();
 // "me" маршрутуудыг ":id"-ээс өмнө бичнэ, эс бөгөөс "me"-г id гэж ойлгоно
 userRoutes.patch('/users/me', c.updateMe);
 userRoutes.put('/users/me/subjects', c.setMySubjects);
+userRoutes.get('/users/me/bookmarks', c.myBookmarks);
 userRoutes.get('/users/:id', c.getProfile);
 userRoutes.get('/users/:id/questions', c.getQuestions);
 userRoutes.get('/users/:id/answers', c.getAnswers);

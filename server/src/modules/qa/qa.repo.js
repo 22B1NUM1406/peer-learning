@@ -43,13 +43,16 @@ export async function getAnswers(questionId, viewerId, { includeHidden }) {
             a.author_id, u.name AS author_name, u.reputation AS author_reputation,
             COUNT(v.user_id)::int AS vote_count,
             BOOL_OR(v.user_id = $2) IS TRUE AS voted_by_me,
-            q.accepted_answer_id = a.id AS is_accepted
+            q.accepted_answer_id = a.id AS is_accepted,
+            (SELECT COUNT(*)::int FROM questions q2 JOIN answers a2 ON a2.id = q2.accepted_answer_id
+              WHERE a2.author_id = a.author_id AND q2.subject_id = q.subject_id
+                AND NOT q2.is_hidden AND NOT a2.is_hidden) AS author_accepted_in_subject
        FROM answers a
        JOIN users u ON u.id = a.author_id
        JOIN questions q ON q.id = a.question_id
        LEFT JOIN votes v ON v.answer_id = a.id
       WHERE a.question_id = $1 AND ($3 OR NOT a.is_hidden)
-      GROUP BY a.id, u.id, q.accepted_answer_id
+      GROUP BY a.id, u.id, q.accepted_answer_id, q.subject_id
       ORDER BY is_accepted DESC, vote_count DESC, a.created_at ASC`,
     [questionId, viewerId, includeHidden],
   );
@@ -127,4 +130,39 @@ export async function findComment(id) {
 
 export async function deleteComment(id) {
   await query('DELETE FROM comments WHERE id = $1', [id]);
+}
+
+// ------------------------------------------------------------- Хадгалах (санал 7)
+
+export async function addBookmark(userId, questionId) {
+  await query('INSERT INTO bookmarks (user_id, question_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, questionId]);
+}
+
+export async function removeBookmark(userId, questionId) {
+  await query('DELETE FROM bookmarks WHERE user_id = $1 AND question_id = $2', [userId, questionId]);
+}
+
+export async function isBookmarked(userId, questionId) {
+  const { rowCount } = await query('SELECT 1 FROM bookmarks WHERE user_id = $1 AND question_id = $2', [userId, questionId]);
+  return rowCount > 0;
+}
+
+// --------------------------------------------------- Төстэй асуултууд (санал 5)
+// Гарчгийн trigram төстэй байдлаар; ижил хичээлийнхийг дээр гаргана. Нуусан асуулт орохгүй.
+export async function relatedQuestions(id, limit = 5) {
+  const { rows } = await query(
+    `SELECT r.id, r.title, s.name AS "subjectName",
+            r.accepted_answer_id IS NOT NULL AS "hasAccepted",
+            (SELECT COUNT(*)::int FROM answers a WHERE a.question_id = r.id AND NOT a.is_hidden) AS "answerCount",
+            round(similarity(r.title, q.title)::numeric, 2)::float AS score
+       FROM questions q
+       JOIN questions r ON r.id <> q.id AND NOT r.is_hidden
+       JOIN subjects s ON s.id = r.subject_id
+      WHERE q.id = $1
+        AND (similarity(r.title, q.title) >= 0.2 OR (r.subject_id = q.subject_id AND similarity(r.title, q.title) >= 0.1))
+      ORDER BY (r.subject_id = q.subject_id) DESC, score DESC, r.created_at DESC
+      LIMIT $2`,
+    [id, limit],
+  );
+  return rows;
 }

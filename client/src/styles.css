@@ -500,3 +500,45 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .similar-subjects { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
 .similar-subjects li { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 720px) { .new-subject-grid { grid-template-columns: 1fr; } }
+
+/* ----- Туслагч санал болгох (санал 1) ----- */
+.helpers-suggest { margin-top: 10px; padding: 12px 14px; border: 1px solid #c7d2fe; background: var(--primary-soft); border-radius: 10px; }
+.helpers-suggest h3 { display: flex; align-items: center; gap: 8px; font-size: .9rem; margin: 0 0 6px; color: var(--text); }
+.helpers-suggest h3 svg { color: var(--primary); }
+.helpers-suggest ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.helpers-suggest li { display: flex; align-items: center; gap: 10px; }
+
+/* ----- Нэр нууцлах сонголт (санал 2) ----- */
+.anon-choice { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px !important; }
+.anon-choice legend { padding: 0 4px; }
+.anon-choice > small { grid-column: 1 / -1; font-weight: 400; }
+.anon-option { display: flex !important; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-weight: 400 !important; transition: border-color var(--ease), background var(--ease); }
+.anon-option input { accent-color: var(--primary); }
+.anon-option svg { color: var(--muted); }
+.anon-option.on { border-color: var(--primary); background: var(--primary-soft); }
+.anon-option.on svg { color: var(--primary); }
+@media (max-width: 720px) { .anon-choice { grid-template-columns: 1fr; } }
+.tag-level { background: var(--warn-soft); color: var(--warn); border-color: #fde68a; }
+.related { margin-top: 20px; }
+.related h2 { font-size: 1rem; margin: 0 0 8px; }
+.related ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.body-text a { overflow-wrap: anywhere; }
+
+/* ----- Профайл: түвшин, тэмдэг, идэвх (санал 4, 7) ----- */
+.level-bar { grid-column: 1 / -1; display: grid; gap: 6px; }
+.level-track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.level-track span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 999px; transition: width .4s ease; }
+.profile-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin: 16px 0; }
+.mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.mini-stats div { display: grid; padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+.mini-stats strong { font-size: 1.2rem; }
+.mini-stats span { font-size: .78rem; color: var(--muted); }
+.activity-table td, .activity-table th { padding: 8px 10px; }
+.badge-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.badge-list li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; border: 1px dashed var(--border); color: var(--muted); }
+.badge-list li.earned { border-style: solid; border-color: #fde68a; background: var(--warn-soft); color: var(--text); }
+.badge-list li.earned svg { color: var(--warn); }
+@media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .mini-stats { grid-template-columns: 1fr 1fr 1fr; } .activity-table { font-size: .82rem; } }
+.profile-grid > section { min-width: 0; overflow-x: auto; }
+@media (max-width: 720px) { .mini-stats div { padding: 8px; } .mini-stats span { font-size: .72rem; } }

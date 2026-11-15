@@ -28,6 +28,9 @@ export async function listMessages(userId, otherId, beforeId) {
 // ------------------------------------------------------- Мэдэгдэл (FR-19)
 
 export const notify = notifRepo.createNotification;
+export const notifyOnce = notifRepo.createNotificationOnce;
+export const notifySubjectHelpers = notifRepo.notifySubjectHelpers;
+export const notifyFollowers = notifRepo.notifyFollowers;
 
 export async function listNotifications(userId) {
   const [items, unread] = await Promise.all([notifRepo.listForUser(userId), notifRepo.countUnread(userId)]);

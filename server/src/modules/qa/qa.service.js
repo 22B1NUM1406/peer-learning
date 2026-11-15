@@ -2,7 +2,7 @@ import { withTransaction } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { authorFor } from '../../lib/authors.js';
 import { findSubjectById } from '../subjects/subjects.repo.js';
-import { notify, markReadForQuestion } from '../messages/messages.service.js';
+import { notify, notifyFollowers, notifySubjectHelpers, markReadForQuestion } from '../messages/messages.service.js';
 import { revokeAnswerPoints } from '../rating/rating.service.js';
 import * as repo from './qa.repo.js';
 
@@ -26,7 +26,10 @@ async function requireVisibleQuestion(id, viewer) {
 
 export async function createQuestion(user, data) {
   await requireActiveSubject(data.subjectId);
-  return repo.createQuestion({ authorId: user.id, ...data });
+  const id = await repo.createQuestion({ authorId: user.id, ...data });
+  // FR-30 (Ask → Match): тухайн хичээлд туслах боломжтой оюутнуудад мэдэгдэнэ
+  await notifySubjectHelpers({ subjectId: data.subjectId, questionId: id, exceptUserId: user.id });
+  return id;
 }
 
 // P4: асуулт, хариултууд, сэтгэгдлүүдийг нэг хариунд нэгтгэнэ
@@ -34,10 +37,11 @@ export async function getQuestion(id, viewer) {
   const q = await repo.getQuestion(id);
   if (!q || (q.is_hidden && !isAdmin(viewer))) throw notFound('Асуулт олдсонгүй');
 
-  const [answers, comments] = await Promise.all([
+  const [answers, comments, , bookmarked] = await Promise.all([
     repo.getAnswers(id, viewer.id, { includeHidden: isAdmin(viewer) }),
     repo.getComments(id),
     markReadForQuestion(viewer.id, id),
+    repo.isBookmarked(viewer.id, id),
   ]);
 
   const toComment = (c) => ({
@@ -57,6 +61,7 @@ export async function getQuestion(id, viewer) {
     author: authorFor(q, viewer, { anonymous: q.is_anonymous }),
     isMine: q.author_id === viewer.id,
     acceptedAnswerId: q.accepted_answer_id,
+    bookmarkedByMe: bookmarked,
     // FR-06: хариулттай асуултыг мэдлэгийн санд үлдээхийн тулд устгахыг хориглоно
     canDelete: q.author_id === viewer.id && answers.length === 0,
     comments: comments.filter((c) => c.question_id === q.id).map(toComment),
@@ -70,6 +75,8 @@ export async function getQuestion(id, viewer) {
       isAccepted: a.is_accepted,
       voteCount: a.vote_count,
       votedByMe: a.voted_by_me,
+      // Санал 6: хариулагчийн тухайн хичээлд "тусалсан" хариултын тоо (туршлага)
+      authorAcceptedInSubject: a.author_accepted_in_subject,
       comments: comments.filter((c) => c.answer_id === a.id).map(toComment),
     })),
   };
@@ -96,6 +103,8 @@ export async function createAnswer(user, questionId, body) {
   const id = await repo.createAnswer({ questionId, authorId: user.id, body });
   // FR-19: асуугчид мэдэгдэнэ (өөрийн асуултад хариулбал мэдэгдэхгүй)
   if (q.author_id !== user.id) await notify({ userId: q.author_id, type: 'new_answer', questionId });
+  // FR-30: асуултыг хадгалсан оюутнуудад мэдэгдэнэ
+  await notifyFollowers({ questionId, exceptUserIds: [user.id, q.author_id] });
   return id;
 }
 
@@ -142,4 +151,19 @@ export async function deleteComment(user, id) {
   if (!c) throw notFound('Сэтгэгдэл олдсонгүй');
   if (c.author_id !== user.id) throw forbidden();
   await repo.deleteComment(id);
+}
+
+// ------------------------------------------------------------- Хадгалах (санал 7)
+
+export async function bookmark(user, questionId, on) {
+  await requireVisibleQuestion(questionId, user);
+  if (on) await repo.addBookmark(user.id, questionId);
+  else await repo.removeBookmark(user.id, questionId);
+  return { bookmarked: on };
+}
+
+// Санал 5: асуултын хуудсанд төстэй асуултууд
+export async function related(user, questionId) {
+  await requireVisibleQuestion(questionId, user);
+  return repo.relatedQuestions(questionId);
 }

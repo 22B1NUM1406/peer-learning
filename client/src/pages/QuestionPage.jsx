@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, CircleCheck, MessageSquareText, Pencil, ThumbsUp, Trash2 } from 'lucide-react';
+import { ArrowLeft, Award, Bookmark, BookmarkCheck, Check, CircleCheck, MessageSquareText, Pencil, Sparkles, ThumbsUp, Trash2 } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { AuthorLine, Body, ErrorText, Loading } from '../components/ui.jsx';
 import ReportButton from '../components/ReportButton.jsx';
+import SuggestedHelpers from '../components/SuggestedHelpers.jsx';
 
 // P4: Асуултын дэлгэрэнгүй (FR-08–FR-12, FR-14, FR-15)
 export default function QuestionPage() {
@@ -50,6 +51,14 @@ export default function QuestionPage() {
         <Body text={q.body} />
 
         <div className="actions">
+          {/* Санал 7: хадгалах — дараа унших, шинэ хариулт ирэхэд мэдэгдэл авах */}
+          <button
+            className={`link-btn ${q.bookmarkedByMe ? '' : 'muted'}`} aria-pressed={q.bookmarkedByMe}
+            onClick={() => run(() => api(`/questions/${q.id}/bookmark`, { method: q.bookmarkedByMe ? 'DELETE' : 'PUT' }))}
+            title="Хадгалсан асуултад шинэ хариулт ирэхэд мэдэгдэл авна"
+          >
+            {q.bookmarkedByMe ? <><BookmarkCheck size={14} />Хадгалсан</> : <><Bookmark size={14} />Хадгалах</>}
+          </button>
           {q.isMine && <Link to={`/questions/${q.id}/edit`} className="link-btn"><Pencil size={14} />Засах</Link>}
           {q.canDelete && <button className="link-btn danger" onClick={deleteQuestion}><Trash2 size={14} />Устгах</button>}
           {!q.isMine && <ReportButton targetType="question" targetId={q.id} />}
@@ -66,6 +75,13 @@ export default function QuestionPage() {
 
       <h2 className="section-title icon-title"><MessageSquareText size={18} />{q.answers.length} хариулт</h2>
       {q.answers.length === 0 && <p className="muted">Хариулт алга. Анхны хариултыг та бичээрэй.</p>}
+      {q.isMine && q.answers.length === 0 && (
+        <SuggestedHelpers
+          subjectId={q.subject.id}
+          title="Хариулт хүлээж байна уу? Эдгээр оюутнуудад шууд бичээрэй"
+          note="Тэдэнд таны асуултын тухай мэдэгдэл очсон."
+        />
+      )}
       <ul className="answers">
         {q.answers.map((a) => (
           <Answer key={a.id} a={a} question={q} run={run} />
@@ -73,6 +89,7 @@ export default function QuestionPage() {
       </ul>
 
       <AnswerForm questionId={q.id} onDone={() => run(async () => {})} />
+      <RelatedQuestions questionId={q.id} />
     </article>
   );
 }
@@ -127,7 +144,12 @@ function Answer({ a, question, run }) {
           <Body text={a.body} />
         )}
         <div className="answer-foot">
-          <AuthorLine author={a.author} createdAt={a.createdAt} />
+          <span className="author-line">
+            <AuthorLine author={a.author} createdAt={a.createdAt} />
+            {/* Санал 6: хариулагчийн түвшин ба энэ хичээлд тусалсан туршлага */}
+            {a.author?.level && a.author.level.key !== 'newcomer' && <span className="tag tag-level"><Award size={12} />{a.author.level.name}</span>}
+            {a.authorAcceptedInSubject > 0 && <span className="tag tag-ok">Энэ хичээлд {a.authorAcceptedInSubject} удаа тусалсан</span>}
+          </span>
           <span className="actions">
             {a.isMine && !editing && <button className="link-btn" onClick={() => setEditing(true)}><Pencil size={14} />Засах</button>}
             {a.isMine && <button className="link-btn danger" onClick={remove}><Trash2 size={14} />Устгах</button>}
@@ -218,5 +240,24 @@ function AnswerForm({ questionId, onDone }) {
       <ErrorText error={error} />
       <div className="row-end"><button className="btn btn-primary" disabled={busy}>Хариулт нийтлэх</button></div>
     </form>
+  );
+}
+
+// Санал 5: төстэй асуултууд — ижил хичээлийнхийг эхэнд (GET /questions/:id/related)
+function RelatedQuestions({ questionId }) {
+  const { data } = useApi(`/questions/${questionId}/related`);
+  if (!data?.questions.length) return null;
+  return (
+    <section className="related card pad">
+      <h2 className="icon-title"><Sparkles size={17} />Төстэй асуултууд</h2>
+      <ul>
+        {data.questions.map((r) => (
+          <li key={r.id}>
+            <Link to={`/questions/${r.id}`}>{r.title}</Link>
+            <span className="muted small"> · {r.subjectName} · {r.answerCount} хариулт{r.hasAccepted ? ' · тусалсан хариулттай' : ''}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -13,7 +13,7 @@ export const app = createApp();
 export const api = () => request(app);
 
 export async function resetDb() {
-  await pool.query(`TRUNCATE users, subjects, schools, departments, sessions, questions, answers, votes, comments,
+  await pool.query(`TRUNCATE users, subjects, schools, departments, bookmarks, sessions, questions, answers, votes, comments,
     resources, reports, messages, notifications, user_subjects RESTART IDENTITY CASCADE`);
 }
 

@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api.js';
 import { useDebounced, useSchools, useSubjects } from '../lib/hooks.js';
 import SubjectPicker from '../components/SubjectPicker.jsx';
+import SuggestedHelpers from '../components/SuggestedHelpers.jsx';
+import { EyeOff, User } from 'lucide-react';
+import { useAuth } from '../lib/auth.jsx';
 import { ErrorText, Loading } from '../components/ui.jsx';
 
 // P3: Асуулт асуух ба засах (FR-05, FR-06, FR-20, FR-25)
@@ -11,6 +14,7 @@ export default function AskPage() {
   const editing = !!id;
   const [search] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const loadedSubjects = useSubjects();
   const [added, setAdded] = useState([]);   // энэ хуудсанд оюутны шинээр нэмсэн хичээл (FR-27)
   const subjects = [...loadedSubjects, ...added.filter((a) => !loadedSubjects.some((s) => s.id === a.id))];
@@ -93,6 +97,12 @@ export default function AskPage() {
             onChange={(subjectId) => setForm((f) => ({ ...f, subjectId }))}
             onCreated={(s) => setAdded((list) => [...list, s])}
           />
+          {!editing && form.subjectId && (
+            <SuggestedHelpers
+              subjectId={form.subjectId}
+              note="Асуултаа нийтлэхэд эдгээр оюутнуудад мэдэгдэл очно. Яаралтай бол шууд бичиж болно."
+            />
+          )}
         </div>
 
         <label>Дэлгэрэнгүй
@@ -101,13 +111,21 @@ export default function AskPage() {
         </label>
 
         {!editing && (
-          <label className="check">
-            <input type="checkbox" checked={form.isAnonymous} onChange={set('isAnonymous')} />
-            <span>
-              <strong>Нэрээ нуух</strong>
-              <small className="muted block">Бусад оюутанд таны нэр харагдахгүй. Админ дүрэм зөрчсөн эсэхийг шалгахад л харна.</small>
-            </span>
-          </label>
+          // Санал 2: нэрээ нуух сонголтыг ойлгомжтой болгох — бусдад яаж харагдахыг шууд харуулна (FR-20)
+          <fieldset className="anon-choice">
+            <legend>Бусад оюутанд хэрхэн харагдах вэ?</legend>
+            <label className={`anon-option ${!form.isAnonymous ? 'on' : ''}`}>
+              <input type="radio" name="anon" checked={!form.isAnonymous} onChange={() => setForm((f) => ({ ...f, isAnonymous: false }))} />
+              <User size={18} />
+              <span><strong>Өөрийн нэрээр</strong><small className="muted block">“{user.name}” гэж харагдана</small></span>
+            </label>
+            <label className={`anon-option ${form.isAnonymous ? 'on' : ''}`}>
+              <input type="radio" name="anon" checked={form.isAnonymous} onChange={() => setForm((f) => ({ ...f, isAnonymous: true }))} />
+              <EyeOff size={18} />
+              <span><strong>Нэрээ нууцлан</strong><small className="muted block">“Нэрээ нуусан оюутан” гэж харагдана</small></span>
+            </label>
+            <small className="muted">Нэрээ нуусан ч таны асуулт өөрт тань болон дүрэм зөрчсөн эсэхийг шалгах админд л таны нэртэй харагдана. Хариулт, сэтгэгдэл таны нэрээр гарна.</small>
+          </fieldset>
         )}
 
         <ErrorText error={error} />

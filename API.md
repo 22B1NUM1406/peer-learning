@@ -43,10 +43,11 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| GET | `/api/users/:id` | 👤 | Профайлыг буцаана: нэр, бүрэлдэхүүн сургууль, курс, оноо, туслах хичээлүүд. Имэйлийг буцаахгүй (NFR-12) |
+| GET | `/api/users/:id` | 👤 | Профайлыг буцаана: нэр, бүрэлдэхүүн сургууль, курс, оноо, туслах хичээлүүд. Мөн `level` (`{key, name, nextName, nextAt}`), `badges` (`{key, name, description, earned}`), `helpedStudents`, `votesReceived`, `resourceCount`, `subjectActivity` (хичээл бүрээр асуулт, хариулт, "тусалсан" тоо; нэрээ нуусан асуултыг зөвхөн өөрт нь болон админд тооцно). `notifyNewQuestions`-ийг зөвхөн өөрт нь буцаана. Имэйлийг буцаахгүй (NFR-12) |
+| GET | `/api/users/me/bookmarks` | 👤 | Хадгалсан асуултууд (сүүлд хадгалсан нь эхэнд) |
 | GET | `/api/users/:id/questions` | 👤 | Тухайн хүний асуултууд. Нэр нууцалсан асуултыг бусдад харуулахгүй |
 | GET | `/api/users/:id/answers` | 👤 | Тухайн хүний хариултууд |
-| PATCH | `/api/users/me` | 👤 | `{name, faculty, year}` |
+| PATCH | `/api/users/me` | 👤 | `{name, faculty, year, notifyNewQuestions?}` |
 | PUT | `/api/users/me/subjects` | 👤 | `{subjectIds: [..]}`: туслах хичээлүүдийг бүхэлд нь солино |
 
 ## 3. Subject (FR-04, FR-17)
@@ -69,8 +70,11 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | GET | `/api/questions` | 👤 | `?subject=&school=&sort=new\|unanswered\|popular&q=&page=`. `q` өгвөл бүрэн текст хайлт (FR-13) хийнэ. Асуулт бүрд `answerCount`, `voteCount` (хариултуудын авсан "тустай" үнэлгээний нийлбэр). `popular` нь `voteCount`-оор эрэмбэлнэ |
 | GET | `/api/stats/community` | 👤 | Нүүрний хажуугийн самбар: сүүлийн 7 хоногт хамгийн их асуулттай хичээл, хамгийн их хариулсан оюутан, хамгийн их оноотой оюутан (тус бүр 5 хүртэл) ба нийт тоо. Нуусан контент, түдгэлзүүлсэн хэрэглэгч, админыг тооцохгүй |
 | GET | `/api/questions/similar` | 👤 | `?title=`: pg_trgm-ээр хамгийн төстэй 5 асуултыг буцаана (FR-25). Frontend-ээс 300 мс debounce хийж дуудна |
-| POST | `/api/questions` | 👤 | `{title, body, subjectId, isAnonymous}` |
-| GET | `/api/questions/:id` | 👤 | Асуулт, хариултууд (эхэнд "тусалсан", дараа нь үнэлгээгээр), сэтгэгдлүүд. Хариулт бүрд `votedByMe` талбар |
+| POST | `/api/questions` | 👤 | `{title, body, subjectId, isAnonymous}`. Тухайн хичээлийг туслах хичээлдээ нэмсэн, мэдэгдлийн тохиргоо асаалттай идэвхтэй оюутнуудад `new_question` мэдэгдэл үүсгэнэ |
+| GET | `/api/questions/:id` | 👤 | Асуулт, хариултууд (эхэнд "тусалсан", дараа нь үнэлгээгээр), сэтгэгдлүүд. Хариулт бүрд `votedByMe`, `authorAcceptedInSubject` (хариулагчийн энэ хичээлд авсан "тусалсан" хариултын тоо), `author.level`. Асуултад `bookmarkedByMe` |
+| GET | `/api/questions/:id/related` | 👤 | Төстэй асуултууд: гарчгийн trigram төстэй байдал ≥ 0.2, эсвэл ижил хичээлийнх бол ≥ 0.1. Ижил хичээлийнх эхэнд, нуусан асуулт орохгүй, 5 хүртэл |
+| PUT | `/api/questions/:id/bookmark` | 👤 | Асуултыг хадгална (давтан дуудахад өөрчлөгдөхгүй) |
+| DELETE | `/api/questions/:id/bookmark` | 👤 | Хадгалснаа болиулна |
 | PATCH | `/api/questions/:id` | ✍ | `{title?, body?, subjectId?}` |
 | DELETE | `/api/questions/:id` | ✍ | Хариулттай асуултад 409 буцаана (FR-06) |
 
@@ -80,7 +84,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| POST | `/api/questions/:id/answers` | 👤 | `{body}`. Асуугчид `new_answer` мэдэгдэл үүсгэнэ |
+| POST | `/api/questions/:id/answers` | 👤 | `{body}`. Асуугчид `new_answer`, асуултыг хадгалсан бусад хүнд `followed_answer` мэдэгдэл үүсгэнэ |
 | PATCH | `/api/answers/:id` | ✍ | `{body}` |
 | DELETE | `/api/answers/:id` | ✍ | Тухайн хариулт "тусалсан" байсан бол асуултын тэмдэглэгээ арилж, оноо буцаагдана |
 | POST | `/api/questions/:id/comments` | 👤 | `{body}` (500 тэмдэгт хүртэл) |
@@ -91,7 +95,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
-| POST | `/api/answers/:id/vote` | 👤 | "Тустай" үнэлгээ. Өөрийн хариултыг үнэлэхэд 403, дахин үнэлэхэд 409 буцаана |
+| POST | `/api/answers/:id/vote` | 👤 | "Тустай" үнэлгээ. Өөрийн хариултыг үнэлэхэд 403, дахин үнэлэхэд 409 буцаана. Хариулагчид `vote` мэдэгдэл (уншаагүй байхад давхардуулахгүй) |
 | DELETE | `/api/answers/:id/vote` | 👤 | Үнэлгээг буцаана |
 | PUT | `/api/questions/:id/accepted` | ✍ | `{answerId}` эсвэл `{answerId: null}`. Зөвхөн асуугч. Хариулагчид `accepted` мэдэгдэл үүсгэнэ |
 
@@ -104,6 +108,10 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | Хариулт устгагдах | Тэр хариултаар авсан бүх оноо хасагдана |
 
 Асуугч өөрийн хариултыг "тусалсан" гэж тэмдэглэж болох ч оноо авахгүй. Оноо 0-ээс доош орохгүй.
+
+Оноо хуурахаас хамгаалах: нэг оюутан нэг хүнд сүүлийн 24 цагт "тустай" үнэлгээгээр 3 удаагаас (`DAILY_POINTS_PER_PAIR`) илүү оноо өгөхгүй. Хязгаараас хэтэрсэн үнэлгээ хадгалагдаж, тоонд ордог ч `votes.awarded = false` тул оноо нэмэхгүй, буцаахад ч хасахгүй. Зэрэг ирсэн хүсэлтийг `pg_advisory_xact_lock`-оор дараалуулна.
+
+Түвшин нь оноогоор тооцогдоно (`lib/levels.js`): Шинэ гишүүн 0, Туслагч 10, Идэвхтэй туслагч 50, Мэргэжилтэн 200. Тэмдгийг тусдаа хүснэгтэд хадгалахгүй, бодит өгөгдлөөс тооцно.
 
 ## 7. Материал (FR-21, FR-23)
 
@@ -134,7 +142,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | GET | `/api/conversations` | 👤 | Яриануудын жагсаалт: нөгөө хүн, сүүлийн мессеж |
 | GET | `/api/conversations/:userId/messages` | 👤 | `?before=<id>`: хуучин мессежийг хуудаслан уншина |
 | POST | `/api/conversations/:userId/messages` | 👤 | `{body}`. Socket.IO холбогдоогүй үеийн нөөц зам; хүлээн авагчид мөн `message:new` илгээнэ |
-| GET | `/api/notifications` | 👤 | Сүүлийн 20 мэдэгдэл ба уншаагүйн тоо. Frontend 30 секунд тутам дуудна (polling). Асуултыг нээхэд (`GET /api/questions/:id`) түүний мэдэгдэл автоматаар уншсан болно |
+| GET | `/api/notifications` | 👤 | Сүүлийн 20 мэдэгдэл ба уншаагүйн тоо. Frontend 30 секунд тутам дуудна (polling). Асуултыг нээхэд (`GET /api/questions/:id`) түүний мэдэгдэл автоматаар уншсан болно. Төрөл: `new_answer`, `accepted`, `new_question`, `vote`, `followed_answer` |
 | PATCH | `/api/notifications/:id/read` | 👤 | Уншсан болгоно |
 | POST | `/api/notifications/read-all` | 👤 | Бүгдийг уншсан болгоно |
 

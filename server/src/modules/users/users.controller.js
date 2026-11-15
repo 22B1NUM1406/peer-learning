@@ -1,5 +1,5 @@
 import { badRequest } from '../../lib/errors.js';
-import { optionalString, requireId, requireString } from '../../lib/validate.js';
+import { optionalBoolean, optionalString, requireId, requireString } from '../../lib/validate.js';
 import * as service from './users.service.js';
 
 export async function getProfile(req, res) {
@@ -22,7 +22,8 @@ export async function updateMe(req, res) {
     year = Number(req.body.year);
     if (!Number.isInteger(year) || year < 1 || year > 6) throw badRequest('Курс 1–6 байна');
   }
-  res.json({ user: await service.updateProfile(req.user.id, { name, faculty, year }) });
+  const notifyNewQuestions = optionalBoolean(req.body?.notifyNewQuestions, 'notifyNewQuestions');
+  res.json({ user: await service.updateProfile(req.user.id, { name, faculty, year, notifyNewQuestions }) });
 }
 
 export async function setMySubjects(req, res) {
@@ -34,4 +35,9 @@ export async function setMySubjects(req, res) {
 
 export async function listHelpers(req, res) {
   res.json({ helpers: await service.listHelpers(requireId(req.params.id)) });
+}
+
+// GET /api/users/me/bookmarks — хадгалсан асуултууд (зөвхөн өөрийнх)
+export async function myBookmarks(req, res) {
+  res.json({ questions: await service.listBookmarks(req.user.id) });
 }

@@ -1,12 +1,17 @@
 import { withTransaction } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { findAnswer } from '../qa/qa.repo.js';
-import { notify } from '../messages/messages.service.js';
+import { notify, notifyOnce } from '../messages/messages.service.js';
 import * as repo from './rating.repo.js';
 
 // Оноо (FR-24). Нэг "тустай" үнэлгээ 2 оноо, "тусалсан" тэмдэглэгээ 10 оноо.
 // "Тусалсан" нь асуугч асуудлаа шийдсэнийг илэрхийлэх тул илүү өндөр жинтэй.
 export const POINTS = { vote: 2, accepted: 10 };
+
+// Оноог хуурахаас хамгаалах: нэг оюутан нэг хүний хариултуудад 24 цагт хамгийн ихдээ 3 удаа
+// оноо өгнө. Үүнээс хойших үнэлгээ хариултын "тустай" тоонд орох ч оноо өгөхгүй
+// (хоёр оюутан бие биедээ олон удаа үнэлгээ өгч оноо цуглуулахаас сэргийлнэ).
+export const DAILY_POINTS_PER_PAIR = 3;
 
 // FR-11: "тустай" үнэлгээ
 export async function vote(user, answerId) {
@@ -14,8 +19,11 @@ export async function vote(user, answerId) {
     const answer = await findAnswer(answerId, db);
     if (!answer || answer.is_hidden || answer.question_hidden) throw notFound('Хариулт олдсонгүй');
     if (answer.author_id === user.id) throw forbidden('Өөрийн хариултыг үнэлэх боломжгүй');
-    if (!(await repo.insertVote(db, user.id, answerId))) throw conflict('Та энэ хариултыг аль хэдийн үнэлсэн');
-    await repo.addReputation(db, answer.author_id, POINTS.vote);
+    const awarded = (await repo.countAwardedToAuthor(db, user.id, answer.author_id)) < DAILY_POINTS_PER_PAIR;
+    if (!(await repo.insertVote(db, user.id, answerId, awarded))) throw conflict('Та энэ хариултыг аль хэдийн үнэлсэн');
+    if (awarded) await repo.addReputation(db, answer.author_id, POINTS.vote);
+    // FR-30: хариулагчид мэдэгдэнэ (уншаагүй ижил мэдэгдэл байвал давхардуулахгүй)
+    await notifyOnce({ userId: answer.author_id, type: 'vote', questionId: answer.question_id }, db);
     return repo.countVotes(db, answerId);
   });
 }
@@ -24,8 +32,9 @@ export async function unvote(user, answerId) {
   return withTransaction(async (db) => {
     const answer = await findAnswer(answerId, db);
     if (!answer) throw notFound('Хариулт олдсонгүй');
-    if (!(await repo.deleteVote(db, user.id, answerId))) throw notFound('Үнэлгээ олдсонгүй');
-    await repo.addReputation(db, answer.author_id, -POINTS.vote);
+    const awarded = await repo.deleteVote(db, user.id, answerId);
+    if (awarded === null) throw notFound('Үнэлгээ олдсонгүй');
+    if (awarded) await repo.addReputation(db, answer.author_id, -POINTS.vote);
     return repo.countVotes(db, answerId);
   });
 }
@@ -62,7 +71,7 @@ export async function accept(user, questionId, answerId) {
 // Хариулт устгагдахад (эзэн эсвэл админ) түүгээр олсон оноог буцаана.
 // Ингэснээр USERS.reputation нь бодит үнэлгээтэй үргэлж тохирно.
 export async function revokeAnswerPoints(db, answer) {
-  const votes = await repo.countVotes(db, answer.id);
+  const votes = await repo.countAwardedVotes(db, answer.id);
   let delta = -votes * POINTS.vote;
   if (answer.is_accepted && answer.author_id !== answer.question_author_id) delta -= POINTS.accepted;
   await repo.addReputation(db, answer.author_id, delta);

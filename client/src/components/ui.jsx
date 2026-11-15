@@ -46,8 +46,18 @@ export function Empty({ children }) {
 
 // Хэрэглэгчийн бичсэн текстийг React автоматаар escape хийдэг (NFR-04);
 // pre-wrap нь мөр шилжилт, код зэргийг хадгална
+// Санал 6: хариулт, асуултад бичсэн материалын холбоосыг (http/https) дарж нээдэг болгоно.
+// HTML хэлбэрээр биш, React-ийн текст ба <a> элементээр үүсгэх тул XSS-ийн эрсдэлгүй.
+const URL_RE = /(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]])/g;
 export function Body({ text }) {
-  return <div className="body-text">{text}</div>;
+  const parts = String(text ?? '').split(URL_RE);
+  return (
+    <div className="body-text">
+      {parts.map((p, i) => (i % 2 === 1
+        ? <a key={i} href={p} target="_blank" rel="noopener noreferrer nofollow">{p}</a>
+        : p))}
+    </div>
+  );
 }
 
 // variant="segmented" нь нүүр хуудасны товч хэлбэрийн таб; tabs: [[key, label, Icon?]]
