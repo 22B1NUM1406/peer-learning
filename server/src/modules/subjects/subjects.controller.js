@@ -31,6 +31,28 @@ export async function get(req, res) {
   res.json({ subject: await service.get(requireId(req.params.id)) });
 }
 
+// GET /api/subjects/similar?name=&code= — нэмэхийн өмнө ижил хичээл байгаа эсэх (FR-27)
+export async function similar(req, res) {
+  res.json({
+    subjects: await service.similar(
+      requireString(req.query.name, 'Хичээлийн нэр', { min: 2, max: 150 }),
+      optionalCode(req.query.code) ?? null,
+    ),
+  });
+}
+
+// POST /api/subjects — оюутан шинэ хичээл нэмнэ (FR-27)
+export async function createByStudent(req, res) {
+  res.status(201).json({
+    subject: await service.createByStudent({
+      name: name(req.body?.name),
+      code: optionalCode(req.body?.code) ?? null,
+      schoolId: placementId(req.body?.schoolId, 'Сургууль') ?? null,
+      departmentId: placementId(req.body?.departmentId, 'Тэнхим') ?? null,
+    }, req.user),
+  });
+}
+
 // GET /api/schools — бүрэлдэхүүн сургууль, тэнхимүүд
 export async function listSchools(req, res) {
   res.json({ schools: await service.listSchools() });

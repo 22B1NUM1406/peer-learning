@@ -11,7 +11,9 @@ export default function AskPage() {
   const editing = !!id;
   const [search] = useSearchParams();
   const navigate = useNavigate();
-  const subjects = useSubjects();
+  const loadedSubjects = useSubjects();
+  const [added, setAdded] = useState([]);   // энэ хуудсанд оюутны шинээр нэмсэн хичээл (FR-27)
+  const subjects = [...loadedSubjects, ...added.filter((a) => !loadedSubjects.some((s) => s.id === a.id))];
   const schools = useSchools();
 
   const [form, setForm] = useState({ title: '', body: '', subjectId: search.get('subject') ?? '', isAnonymous: false });
@@ -89,6 +91,7 @@ export default function AskPage() {
           <SubjectPicker
             subjects={subjects} schools={schools} value={form.subjectId} required
             onChange={(subjectId) => setForm((f) => ({ ...f, subjectId }))}
+            onCreated={(s) => setAdded((list) => [...list, s])}
           />
         </div>
 

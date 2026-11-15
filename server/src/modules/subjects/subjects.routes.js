@@ -5,6 +5,8 @@ import * as c from './subjects.controller.js';
 // /api/subjects — нэвтэрсэн бүх хэрэглэгч
 export const subjectRoutes = Router();
 subjectRoutes.get('/', requireAuth, c.list);
+subjectRoutes.get('/similar', requireAuth, c.similar);   // '/:id'-ээс өмнө байх ёстой
+subjectRoutes.post('/', requireAuth, c.createByStudent); // FR-27
 subjectRoutes.get('/:id', requireAuth, c.get);
 
 // /api/schools — бүрэлдэхүүн сургууль, тэнхимүүд (FR-26)

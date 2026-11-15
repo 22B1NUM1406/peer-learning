@@ -5,6 +5,7 @@ import { useApi } from '../lib/hooks.js';
 import { ErrorText, Loading, Tabs } from '../components/ui.jsx';
 
 // P11: Админ — хичээл (FR-17) ба бүрэлдэхүүн сургууль, тэнхим (FR-26).
+// Оюутны нэмсэн хичээлийг (FR-27) хэн нэмснээр нь тэмдэглэж, засах эсвэл идэвхгүй болгоно.
 // Хичээлийг устгахгүй, идэвхгүй болгоно.
 export default function AdminSubjectsPage() {
   const [tab, setTab] = useState('subjects');
@@ -93,7 +94,10 @@ function SubjectsAdmin({ schools }) {
               ) : (
                 <tr key={s.id} className={s.isActive ? '' : 'muted'}>
                   <td className="nowrap">{s.code ?? '—'}</td>
-                  <td className={s.isActive ? '' : 'strike'}>{s.name}</td>
+                  <td>
+                    <span className={s.isActive ? '' : 'strike'}>{s.name}</span>
+                    {s.createdByName && <span className="muted small block">Оюутан нэмсэн: {s.createdByName}</span>}
+                  </td>
                   <td className="small">{[s.schoolShortName, s.departmentName].filter(Boolean).join(' · ') || <span className="muted">Оноогоогүй</span>}</td>
                   <td className="nowrap">
                     <span className="actions">

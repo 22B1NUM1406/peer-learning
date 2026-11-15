@@ -102,3 +102,50 @@ test('админ сургууль, тэнхим нэмж засна; оюута�
   assert.equal((await as(student).post('/api/admin/schools', { name: 'Хуурамч', shortName: 'ХХ' })).status, 403);
   assert.equal((await as(student).patch(`/api/admin/departments/${mcs}`, { name: 'Хуурамч' })).status, 403);
 });
+
+// ----- FR-27: оюутан хичээл нэмэх -----
+
+test('оюутан хичээл нэмнэ; шууд жагсаалтад орж, асуулт асууж болно', async () => {
+  const res = await as(student).post('/api/subjects', { name: 'Компьютерын сүлжээ', code: 'icsi301', departmentId: mcs });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.subject.code, 'ICSI301');
+  assert.equal(res.body.subject.schoolShortName, 'МТЭС');
+  assert.equal(res.body.subject.createdByName, 'Оюутан');
+  const list = await as(student).get('/api/subjects');
+  assert.ok(list.body.subjects.some((s) => s.name === 'Компьютерын сүлжээ'));
+  const q = await as(student).post('/api/questions', { title: 'Сүлжээний давхаргууд', body: 'OSI загварын давхаргуудыг ойлгохгүй байна', subjectId: res.body.subject.id });
+  assert.equal(q.status, 201);
+  // Админы жагсаалтад хэн нэмсэн нь харагдана
+  const admins = await as(admin).get('/api/admin/subjects');
+  assert.equal(admins.body.subjects.find((s) => s.code === 'ICSI301').createdByName, 'Оюутан');
+});
+
+test('сургуульгүй, давхардсан нэр (том жижиг үсэг ялгаагүй), давхардсан код татгалзана', async () => {
+  await as(student).post('/api/subjects', { name: 'Өгөгдлийн бүтэц', code: 'ICSI202', schoolId: site });
+  assert.equal((await as(student).post('/api/subjects', { name: 'Шинэ хичээл' })).status, 400);
+  const dup = await as(student).post('/api/subjects', { name: 'өгөгдлийн БҮТЭЦ', schoolId: site });
+  assert.equal(dup.status, 409);
+  assert.match(dup.body.error.message, /Өгөгдлийн бүтэц/);
+  assert.equal((await as(student).post('/api/subjects', { name: 'Өөр нэр', code: 'icsi202', schoolId: site })).status, 409);
+  assert.equal((await as(student).post('/api/subjects', { name: 'Буруу тэнхим', schoolId: site, departmentId: math })).status, 400);
+});
+
+test('ижил төстэй хичээлийг нэр (үсгийн алдаатай ч) болон кодоор санал болгоно', async () => {
+  await as(admin).post('/api/admin/subjects', { name: 'Өгөгдлийн бүтэц', code: 'ICSI202', schoolId: site });
+  await as(admin).post('/api/admin/subjects', { name: 'Шугаман алгебр', schoolId: sas });
+  const typo = await as(student).get('/api/subjects/similar?name=' + encodeURIComponent('Огогдлийн бутэц'));
+  assert.equal(typo.status, 200);
+  assert.deepEqual(typo.body.subjects.map((s) => s.name), ['Өгөгдлийн бүтэц']);
+  const byCode = await as(student).get('/api/subjects/similar?name=' + encodeURIComponent('Өөр нэр') + '&code=icsi202');
+  assert.deepEqual(byCode.body.subjects.map((s) => s.code), ['ICSI202']);
+  const none = await as(student).get('/api/subjects/similar?name=' + encodeURIComponent('Сансар судлал'));
+  assert.equal(none.body.subjects.length, 0);
+});
+
+test('нэг оюутан 24 цагт 5-аас олон хичээл нэмэхгүй', async () => {
+  for (let i = 1; i <= 5; i++) {
+    assert.equal((await as(student).post('/api/subjects', { name: `Туршилтын хичээл ${'абвгд'[i - 1]}${i}`, schoolId: site })).status, 201);
+  }
+  const sixth = await as(student).post('/api/subjects', { name: 'Зургаадахь хичээл', schoolId: site });
+  assert.equal(sixth.status, 429);
+});

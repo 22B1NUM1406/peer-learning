@@ -13,3 +13,4 @@ export const unauthorized = (message = 'Нэвтэрнэ үү') => new AppError(
 export const forbidden = (message = 'Энэ үйлдлийг хийх эрхгүй') => new AppError(403, 'FORBIDDEN', message);
 export const notFound = (message = 'Олдсонгүй') => new AppError(404, 'NOT_FOUND', message);
 export const conflict = (message) => new AppError(409, 'CONFLICT', message);
+export const tooMany = (message) => new AppError(429, 'TOO_MANY', message);

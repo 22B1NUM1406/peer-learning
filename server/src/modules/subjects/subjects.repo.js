@@ -3,10 +3,12 @@ import { query } from '../../db.js';
 // Хичээлийн каталог: хичээл, түүнийг заадаг бүрэлдэхүүн сургууль ба тэнхим.
 const SUBJECT_COLS = `s.id, s.name, s.code, s.is_active AS "isActive",
        s.school_id AS "schoolId", sc.short_name AS "schoolShortName", sc.name AS "schoolName",
-       s.department_id AS "departmentId", d.name AS "departmentName"`;
+       s.department_id AS "departmentId", d.name AS "departmentName",
+       s.created_by AS "createdBy", cu.name AS "createdByName"`;
 const SUBJECT_FROM = `subjects s
   LEFT JOIN schools sc ON sc.id = s.school_id
-  LEFT JOIN departments d ON d.id = s.department_id`;
+  LEFT JOIN departments d ON d.id = s.department_id
+  LEFT JOIN users cu ON cu.id = s.created_by`;
 
 export async function listSubjects({ includeInactive = false, schoolId = null, departmentId = null } = {}) {
   const { rows } = await query(
@@ -27,10 +29,10 @@ export async function findSubjectById(id) {
   return rows[0] ?? null;
 }
 
-export async function createSubject({ name, code, schoolId, departmentId }) {
+export async function createSubject({ name, code, schoolId, departmentId, createdBy }) {
   const { rows } = await query(
-    'INSERT INTO subjects (name, code, school_id, department_id) VALUES ($1, $2, $3, $4) RETURNING id',
-    [name, code ?? null, schoolId ?? null, departmentId ?? null],
+    'INSERT INTO subjects (name, code, school_id, department_id, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [name, code ?? null, schoolId ?? null, departmentId ?? null, createdBy ?? null],
   );
   return findSubjectById(rows[0].id);
 }
@@ -111,4 +113,33 @@ export async function renameDepartment(id, name) {
     [id, name],
   );
   return rows[0] ?? null;
+}
+
+// FR-27: шинэ хичээл нэмэхийн өмнө ижил төстэй идэвхтэй хичээлийг санал болгоно.
+// Нэр (trigram төстэй байдал, жишээ нь "бутэц" ↔ "бүтэц") эсвэл кодоор (яг тэнцүү) таарсныг буцаана.
+export async function similarSubjects(name, code, limit = 5) {
+  const { rows } = await query(
+    `SELECT ${SUBJECT_COLS}, round(similarity(s.name, $1)::numeric, 2)::float AS score
+       FROM ${SUBJECT_FROM}
+      WHERE s.is_active AND (similarity(s.name, $1) >= 0.3 OR lower(s.name) = lower($1)
+                             OR ($2::text IS NOT NULL AND s.code = $2))
+      ORDER BY (s.code = $2) DESC NULLS LAST, score DESC
+      LIMIT $3`,
+    [name, code ?? null, limit],
+  );
+  return rows;
+}
+
+export async function findSubjectByName(name) {
+  const { rows } = await query(`SELECT ${SUBJECT_COLS} FROM ${SUBJECT_FROM} WHERE lower(s.name) = lower($1)`, [name]);
+  return rows[0] ?? null;
+}
+
+// Сүүлийн 24 цагт тухайн хэрэглэгчийн нэмсэн хичээлийн тоо (хэт олон нэмэхээс сэргийлнэ)
+export async function countRecentByUser(userId) {
+  const { rows } = await query(
+    "SELECT COUNT(*)::int AS n FROM subjects WHERE created_by = $1 AND created_at > now() - interval '24 hours'",
+    [userId],
+  );
+  return rows[0].n;
 }

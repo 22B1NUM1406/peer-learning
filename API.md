@@ -54,6 +54,8 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
 | GET | `/api/subjects` | 👤 | Идэвхтэй хичээлүүд. `?school=&department=`-аар шүүнэ. Хичээл бүрд `code`, `schoolId`, `schoolShortName`, `departmentId`, `departmentName`, `questionCount` |
+| GET | `/api/subjects/similar` | 👤 | `?name=&code=`. Шинэ хичээл нэмэхийн өмнө ижил төстэй идэвхтэй хичээлүүд (нэрийн trigram төстэй байдал ≥ 0.3 эсвэл ижил код), 5 хүртэл (FR-27) |
+| POST | `/api/subjects` | 👤 | Оюутан хичээл нэмнэ (FR-27): `{ name, code?, schoolId, departmentId? }`. Сургууль эсвэл тэнхим заавал; ижил нэр (том жижиг үсэг ялгаагүй) эсвэл код байвал 409; 24 цагт 5-аас олон бол 429. Шууд идэвхтэй болж, `createdBy` хадгалагдана |
 | GET | `/api/schools` | 👤 | Бүрэлдэхүүн сургуулиуд (дарааллаар), тус бүрийн тэнхимүүд ба идэвхтэй хичээлийн тоо (FR-26) |
 | GET | `/api/subjects/:id` | 👤 | Нэг хичээл |
 | GET | `/api/subjects/:id/helpers` | 👤 | Туслах боломжтой оюутнуудыг тухайн хичээлд авсан "тусалсан" хариултын тоогоор эрэмбэлнэ |

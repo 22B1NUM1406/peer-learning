@@ -493,3 +493,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .school-admin-list { display: grid; gap: 12px; }
 .dept-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 2px; font-size: .92rem; }
 .dept-list li { padding: 6px 0; border-bottom: 1px solid var(--surface-2); }
+.picker-add { justify-self: start; font-size: .9rem; }
+.new-subject { display: grid; gap: 10px; border-color: #c7d2fe; }
+.new-subject-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.new-subject-grid label { display: grid; gap: 4px; font-size: .88rem; font-weight: 550; color: var(--text-2); }
+.similar-subjects { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.similar-subjects li { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 720px) { .new-subject-grid { grid-template-columns: 1fr; } }

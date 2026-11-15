@@ -1,9 +1,13 @@
-import { badRequest, conflict, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, notFound, tooMany } from '../../lib/errors.js';
 import * as repo from './subjects.repo.js';
 
 // FR-17: хичээлийг устгахгүй, идэвхгүй болгоно. Ингэснээр тухайн хичээлийн
 // өмнөх асуултууд мэдлэгийн санд хэвээр үлдэнэ.
 // FR-26: хичээлийг бүрэлдэхүүн сургууль, тэнхимд хамааруулж, кодоор нь ялгана.
+// FR-27: оюутан асуух хичээлээ жагсаалтаас олохгүй бол өөрөө нэмнэ. Шууд нэмэгдэх бөгөөд
+// давхардлыг нэр, кодоор шалгаж, админ дараа нь засах эсвэл идэвхгүй болгоно.
+
+export const STUDENT_DAILY_LIMIT = 5;
 
 export const listActive = (filters) => repo.listSubjects(filters);
 export const listAll = () => repo.listSubjects({ includeInactive: true });
@@ -29,6 +33,7 @@ async function resolvePlacement({ schoolId, departmentId }) {
 
 function uniqueError(err) {
   if (err.code !== '23505') return err;
+  if (err.constraint === 'subjects_name_lower_key') return conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
   if (err.constraint?.includes('code')) return conflict('Ийм кодтой хичээл бүртгэлтэй байна');
   if (err.constraint?.includes('short_name')) return conflict('Ийм товчлолтой сургууль бүртгэлтэй байна');
   if (err.constraint?.startsWith('schools')) return conflict('Ийм нэртэй сургууль бүртгэлтэй байна');
@@ -97,6 +102,25 @@ export async function renameDepartment(id, name) {
     const dept = await repo.renameDepartment(id, name);
     if (!dept) throw notFound('Тэнхим олдсонгүй');
     return dept;
+  } catch (err) {
+    throw uniqueError(err);
+  }
+}
+
+export const similar = (name, code) => repo.similarSubjects(name, code);
+
+// Оюутан хичээл нэмэх: сургууль заавал (хаана заадгийг мэдэхгүй бол бусад нь олохгүй),
+// тэнхим, код заавал биш. Ижил нэртэй хичээл байвал түүнийг нэрлэж татгалзана.
+export async function createByStudent({ name, code, schoolId, departmentId }, user) {
+  if (!schoolId && !departmentId) throw badRequest('Хичээлийг заадаг бүрэлдэхүүн сургуулийг сонгоно уу');
+  const existing = await repo.findSubjectByName(name);
+  if (existing) throw conflict(`“${existing.name}” хичээл бүртгэлтэй байна. Жагсаалтаас сонгоно уу`);
+  if ((await repo.countRecentByUser(user.id)) >= STUDENT_DAILY_LIMIT) {
+    throw tooMany(`Нэг өдөрт ${STUDENT_DAILY_LIMIT} хүртэл хичээл нэмнэ`);
+  }
+  const placement = await resolvePlacement({ schoolId, departmentId });
+  try {
+    return await repo.createSubject({ name, code, ...placement, createdBy: user.id });
   } catch (err) {
     throw uniqueError(err);
   }
