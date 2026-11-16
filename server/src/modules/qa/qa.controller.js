@@ -1,5 +1,5 @@
 import { badRequest } from '../../lib/errors.js';
-import { optionalId, optionalString, requireId, requireString } from '../../lib/validate.js';
+import { optionalBoolean, optionalId, optionalString, requireId, requireString } from '../../lib/validate.js';
 import * as service from './qa.service.js';
 
 const TITLE = { min: 5, max: 200 };
@@ -11,7 +11,7 @@ export async function createQuestion(req, res) {
     title: requireString(b.title, 'Гарчиг', TITLE),
     body: requireString(b.body, 'Агуулга', BODY),
     subjectId: requireId(b.subjectId, 'Хичээл'),
-    isAnonymous: b.isAnonymous === true,
+    isAnonymous: optionalBoolean(b.isAnonymous, 'isAnonymous') ?? false,
   });
   res.status(201).json({ id });
 }

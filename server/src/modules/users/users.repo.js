@@ -10,6 +10,7 @@ export async function findProfile(id) {
               WHERE a.author_id = u.id AND q.author_id <> u.id AND NOT q.is_hidden AND NOT a.is_hidden) AS "helpedStudents",
             (SELECT COUNT(*)::int FROM resources r WHERE r.author_id = u.id AND NOT r.is_hidden) AS "resourceCount",
             (SELECT COUNT(*)::int FROM questions q WHERE q.author_id = u.id AND NOT q.is_hidden) AS "questionCount",
+            (SELECT COUNT(*)::int FROM questions q WHERE q.author_id = u.id AND NOT q.is_hidden AND q.is_anonymous) AS "anonQuestionCount",
             (SELECT COUNT(*)::int FROM answers a WHERE a.author_id = u.id AND NOT a.is_hidden) AS "answerCount",
             (SELECT COUNT(*)::int FROM questions q JOIN answers a ON a.id = q.accepted_answer_id
               WHERE a.author_id = u.id) AS "acceptedCount"
@@ -57,13 +58,17 @@ export async function listAnswersByUser(userId) {
   return rows;
 }
 
-export async function updateProfile(id, { name, faculty, year, notifyNewQuestions }) {
+const PROFILE_COLUMNS = { name: 'name', faculty: 'faculty', year: 'year', notifyNewQuestions: 'notify_new_questions' };
+
+// changes-д байгаа талбарыг л шинэчилнэ (баганын нэрийг дээрх жагсаалтаас авдаг тул SQL injection-гүй)
+export async function updateProfile(id, changes) {
+  const keys = Object.keys(changes).filter((k) => PROFILE_COLUMNS[k] && changes[k] !== undefined);
+  const sets = keys.map((k, i) => `${PROFILE_COLUMNS[k]} = $${i + 2}`);
   const { rows } = await query(
-    `UPDATE users SET name = $2, faculty = $3, year = $4,
-            notify_new_questions = COALESCE($5, notify_new_questions)
+    `UPDATE users SET ${sets.length ? sets.join(', ') : 'name = name'}
       WHERE id = $1
      RETURNING id, name, faculty, year, reputation, role, notify_new_questions AS "notifyNewQuestions"`,
-    [id, name, faculty ?? null, year ?? null, notifyNewQuestions ?? null],
+    [id, ...keys.map((k) => changes[k])],
   );
   return rows[0];
 }

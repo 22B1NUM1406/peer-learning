@@ -2,6 +2,7 @@ import request from 'supertest';
 import { pool } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { hashPassword } from '../src/modules/auth/auth.service.js';
+import { resetLoginLimits } from '../src/lib/rateLimit.js';
 
 // Тестийг тусдаа өгөгдлийн сан дээр ажиллуулна (.env.test-ийн DATABASE_URL).
 // Хөгжүүлэлтийн эсвэл Neon дээрх өгөгдлийг хэзээ ч устгахгүйн тулд нэрийг шалгана.
@@ -13,6 +14,7 @@ export const app = createApp();
 export const api = () => request(app);
 
 export async function resetDb() {
+  resetLoginLimits();
   await pool.query(`TRUNCATE users, subjects, schools, departments, bookmarks, sessions, questions, answers, votes, comments,
     resources, reports, messages, notifications, user_subjects RESTART IDENTITY CASCADE`);
 }

@@ -21,8 +21,13 @@ export function useApi(path, params) {
 
 // Идэвхтэй хичээлүүд (олон хуудсанд сонголт болгон хэрэгтэй)
 export function useSubjects() {
+  return useSubjectsState().subjects;
+}
+
+// Ачаалж дууссан эсэхийг мөн буцаана: ачаалж байхад "олдсонгүй" гэж харуулахгүйн тулд
+export function useSubjectsState() {
   const { data } = useApi('/subjects');
-  return data?.subjects ?? [];
+  return { subjects: data?.subjects ?? [], loaded: !!data };
 }
 
 // МУИС-ийн бүрэлдэхүүн сургууль, тэнхимүүд (FR-26)

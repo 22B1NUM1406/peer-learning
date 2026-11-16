@@ -10,12 +10,15 @@ export async function getProfile(id, viewer) {
   // Түдгэлзсэн хэрэглэгчийн профайлыг зөвхөн админ харна
   if (profile.status !== 'active' && viewer.role !== 'admin') throw notFound('Хэрэглэгч олдсонгүй');
   const isMe = viewer.id === id;
+  const includeAnonymous = isMe || viewer.role === 'admin';
   const [helpSubjects, activity, topSubjects] = await Promise.all([
     repo.listHelpSubjects(id),
-    repo.subjectActivity(id, { includeAnonymous: isMe || viewer.role === 'admin' }),
+    repo.subjectActivity(id, { includeAnonymous }),
     repo.topHelperSubjects(id),
   ]);
-  const { notifyNewQuestions, ...pub } = profile;
+  const { notifyNewQuestions, anonQuestionCount, ...pub } = profile;
+  // Нэрээ нуусан асуултыг бусдад тоолж харуулбал хэн асуусныг таах боломжтой (QA тестээр илэрсэн)
+  if (!includeAnonymous) pub.questionCount -= anonQuestionCount;
   return {
     ...pub,
     // Мэдэгдлийн тохиргоо хувийн мэдээлэл тул зөвхөн өөрт нь

@@ -2,7 +2,9 @@ import { badRequest } from '../../lib/errors.js';
 import { optionalBoolean, optionalId, requireId, requireString } from '../../lib/validate.js';
 import * as service from './subjects.service.js';
 
-const name = (v) => requireString(v, 'Хичээлийн нэр', { min: 2, max: 150 });
+// Дундах олон хоосон зайг нэг болгоно: "QA  тест" ба "QA тест" давхардсан гэж танигдана (QA тестээр илэрсэн)
+const squash = (v) => (typeof v === 'string' ? v.replace(/\s+/g, ' ') : v);
+const name = (v) => requireString(squash(v), 'Хичээлийн нэр', { min: 2, max: 150 });
 
 // Код: заавал биш; хоосон бол null. Том үсгээр хадгална (icsi405 → ICSI405).
 function optionalCode(v) {
@@ -35,7 +37,7 @@ export async function get(req, res) {
 export async function similar(req, res) {
   res.json({
     subjects: await service.similar(
-      requireString(req.query.name, 'Хичээлийн нэр', { min: 2, max: 150 }),
+      name(req.query.name),
       optionalCode(req.query.code) ?? null,
     ),
   });
@@ -86,7 +88,7 @@ export async function update(req, res) {
   res.json({ subject: await service.update(id, changes) });
 }
 
-const schoolName = (v) => requireString(v, 'Сургуулийн нэр', { min: 2, max: 150 });
+const schoolName = (v) => requireString(squash(v), 'Сургуулийн нэр', { min: 2, max: 150 });
 const shortName = (v) => requireString(v, 'Товчлол', { min: 2, max: 20 });
 
 export async function createSchool(req, res) {
@@ -102,7 +104,7 @@ export async function updateSchool(req, res) {
   res.json({ school: await service.updateSchool(requireId(req.params.id), data) });
 }
 
-const deptName = (v) => requireString(v, 'Тэнхимийн нэр', { min: 2, max: 150 });
+const deptName = (v) => requireString(squash(v), 'Тэнхимийн нэр', { min: 2, max: 150 });
 
 export async function createDepartment(req, res) {
   res.status(201).json({ department: await service.createDepartment(requireId(req.params.id), deptName(req.body?.name)) });

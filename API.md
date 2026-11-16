@@ -33,9 +33,11 @@
 | Арга | Зам | Эрх | Тайлбар |
 |---|---|---|---|
 | POST | `/api/auth/register` | 🔓 | `{name, email, password}`. Нууц үгийг Argon2id-аар хэшлээд session үүсгэнэ |
-| POST | `/api/auth/login` | 🔓 | `{email, password}`. Түдгэлзүүлсэн хэрэглэгч 403 авна |
+| POST | `/api/auth/login` | 🔓 | `{email, password}`. Нууц үг буруу, бүртгэлгүй, түдгэлзсэн бүх тохиолдолд ижил 401 мэдэгдэл. Нэг имэйл рүү 15 минутад 10, нэг IP-ээс 50 буруу оролдлого хийвэл 429 (`Retry-After` толгойтой); амжилттай нэвтэрвэл тухайн имэйлийн тоолуур тэглэгдэнэ |
 | POST | `/api/auth/logout` | 👤 | Session-ийг устгаж, cookie-г цэвэрлэнэ |
 | GET | `/api/auth/me` | 👤 | Одоогийн хэрэглэгч `{id, name, role, reputation}` |
+
+Хүсэлтийн бие 100KB-аас их бол 413 (`TOO_LARGE`) буцаана. Хичээл, сургууль, тэнхимийн нэрийн дундах олон хоосон зайг нэг болгож хадгална.
 
 Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railway proxy-ийн ард ажиллах тул `app.set('trust proxy', 1)` тохиргоо заавал хэрэгтэй.
 
@@ -47,7 +49,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | GET | `/api/users/me/bookmarks` | 👤 | Хадгалсан асуултууд (сүүлд хадгалсан нь эхэнд) |
 | GET | `/api/users/:id/questions` | 👤 | Тухайн хүний асуултууд. Нэр нууцалсан асуултыг бусдад харуулахгүй |
 | GET | `/api/users/:id/answers` | 👤 | Тухайн хүний хариултууд |
-| PATCH | `/api/users/me` | 👤 | `{name, faculty, year, notifyNewQuestions?}` |
+| PATCH | `/api/users/me` | 👤 | `{name?, faculty?, year?, notifyNewQuestions?}`. Зөвхөн илгээсэн талбар өөрчлөгдөнө; `null` эсвэл хоосон утга нь талбарыг арилгана |
 | PUT | `/api/users/me/subjects` | 👤 | `{subjectIds: [..]}`: туслах хичээлүүдийг бүхэлд нь солино |
 
 ## 3. Subject (FR-04, FR-17)
@@ -133,7 +135,7 @@ Session cookie: `sid`, `HttpOnly`, `Secure`, `SameSite=Lax`, 7 хоног. Railw
 | GET | `/api/admin/users` | 🛡 | `?status=suspended&q=`: хэрэглэгчийн жагсаалт (P10-ын "Түдгэлзсэн хэрэглэгчид") |
 | PATCH | `/api/admin/users/:id/status` | 🛡 | `{status: "suspended" \| "active"}`. Түдгэлзүүлэхэд тухайн хүний бүх session устаж, socket холболт тасарна |
 
-`hide` нь зөвхөн асуулт, хариулт, материалд ажиллана. Сэтгэгдэл, мессежийг устгана. Асуулт эсвэл хариултыг устгахад түүгээр олсон оноо буцаагдана.
+`hide` нь зөвхөн асуулт, хариулт, материалд ажиллана. Сэтгэгдэл, мессежийг устгана. Асуулт эсвэл хариултыг нуух, устгахад түүгээр олсон оноо буцаагдана. Нуусан хариулт "тусалсан" байсан бол тэмдэглэгээ арилна.
 
 ## 9. Мессеж ба мэдэгдэл (FR-19, FR-22)
 

@@ -70,8 +70,8 @@ export async function resolveReports(targetType, targetId, status, adminId) {
 
 const HIDEABLE = { question: 'questions', answer: 'answers', resource: 'resources' };
 
-export async function hideTarget(type, id) {
-  await query(`UPDATE ${HIDEABLE[type]} SET is_hidden = TRUE WHERE id = $1`, [id]);
+export async function hideTarget(type, id, db = { query }) {
+  await db.query(`UPDATE ${HIDEABLE[type]} SET is_hidden = TRUE WHERE id = $1`, [id]);
 }
 export const canHide = (type) => type in HIDEABLE;
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { useDebounced, useSchools, useSubjects } from '../lib/hooks.js';
+import { useDebounced, useSchools, useSubjectsState } from '../lib/hooks.js';
 import SubjectPicker from '../components/SubjectPicker.jsx';
 import SuggestedHelpers from '../components/SuggestedHelpers.jsx';
 import { EyeOff, User } from 'lucide-react';
@@ -15,7 +15,7 @@ export default function AskPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const loadedSubjects = useSubjects();
+  const { subjects: loadedSubjects, loaded: subjectsLoaded } = useSubjectsState();
   const [added, setAdded] = useState([]);   // энэ хуудсанд оюутны шинээр нэмсэн хичээл (FR-27)
   const subjects = [...loadedSubjects, ...added.filter((a) => !loadedSubjects.some((s) => s.id === a.id))];
   const schools = useSchools();
@@ -93,7 +93,7 @@ export default function AskPage() {
         <div className="field">
           <span className="field-label">Хичээл</span>
           <SubjectPicker
-            subjects={subjects} schools={schools} value={form.subjectId} required
+            subjects={subjects} schools={schools} value={form.subjectId} required loading={!subjectsLoaded}
             onChange={(subjectId) => setForm((f) => ({ ...f, subjectId }))}
             onCreated={(s) => setAdded((list) => [...list, s])}
           />

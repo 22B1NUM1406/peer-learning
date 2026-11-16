@@ -41,6 +41,26 @@ async function deleteQuestionWithPoints(questionId) {
   });
 }
 
+// Нуусан контентоор оноо авсаар байх ёсгүй (QA тестээр илэрсэн): устгахтай адилаар оноог буцаана.
+// Нуусан хариулт "тусалсан" байсан бол тэмдэглэгээг арилгана, эс бөгөөс дараа нь солиход оноо давхар хасагдана.
+async function hideWithPoints(type, id) {
+  await withTransaction(async (db) => {
+    if (type === 'answer' || type === 'question') {
+      const { rows } = await db.query(
+        `SELECT a.id, a.author_id, q.author_id AS question_author_id, q.accepted_answer_id = a.id AS is_accepted
+           FROM answers a JOIN questions q ON q.id = a.question_id
+          WHERE ${type === 'answer' ? 'a.id' : 'q.id'} = $1`,
+        [id],
+      );
+      for (const a of rows) await revokeAnswerPoints(db, a);
+      if (type === 'answer') {
+        await db.query('UPDATE questions SET accepted_answer_id = NULL WHERE accepted_answer_id = $1', [id]);
+      }
+    }
+    await repo.hideTarget(type, id, db);
+  });
+}
+
 async function deleteTarget(type, id) {
   switch (type) {
     case 'question': return deleteQuestionWithPoints(id);
@@ -67,7 +87,7 @@ export async function resolve(admin, reportId, action) {
 
   if (action === 'hide') {
     if (!repo.canHide(r.target_type)) throw badRequest('Энэ төрлийн контентыг нуух боломжгүй, устгана уу');
-    await repo.hideTarget(r.target_type, r.target_id);
+    await hideWithPoints(r.target_type, r.target_id);
   } else if (action === 'delete') {
     await deleteTarget(r.target_type, r.target_id);
   }

@@ -7,7 +7,7 @@ import { ErrorText } from './ui.jsx';
 // FR-26: асуулт асуухад хичээл сонгох. Гурван шаттай цэсний оронд нэг хайлттай талбар:
 // нэр эсвэл кодоор хайна, хүсвэл бүрэлдэхүүн сургуулиар шүүнэ (заавал биш).
 // FR-27: жагсаалтад байхгүй бол оюутан өөрөө нэмнэ; нэмэхийн өмнө ижил төстэй хичээлийг санал болгоно.
-export default function SubjectPicker({ subjects, schools, value, onChange, onCreated, required }) {
+export default function SubjectPicker({ subjects, schools, value, onChange, onCreated, required, loading }) {
   const [text, setText] = useState('');
   const [schoolId, setSchoolId] = useState('');
   const [adding, setAdding] = useState(false);
@@ -27,7 +27,7 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
           <span className="strong block">{subjectLabel(selected)}</span>
           <span className="muted small">{[selected.schoolShortName, selected.departmentName].filter(Boolean).join(' · ') || 'Сургууль заагаагүй'}</span>
         </span>
-        <button type="button" className="link-btn" onClick={() => onChange('')} aria-label="Хичээл солих"><X size={15} />Солих</button>
+        <button type="button" className="link-btn" onClick={() => { setText(''); onChange(''); }} aria-label="Хичээл солих"><X size={15} />Солих</button>
       </div>
     );
   }
@@ -38,8 +38,8 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
         schools={schools}
         initial={{ name: text.trim(), schoolId }}
         onCancel={() => setAdding(false)}
-        onPick={(s) => { setAdding(false); onChange(String(s.id)); }}
-        onCreated={(s) => { setAdding(false); onCreated?.(s); onChange(String(s.id)); }}
+        onPick={(s) => { setAdding(false); setText(''); onChange(String(s.id)); }}
+        onCreated={(s) => { setAdding(false); setText(''); onCreated?.(s); onChange(String(s.id)); }}
       />
     );
   }
@@ -60,7 +60,8 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
         </select>
       </div>
       <ul className="picker-list" role="listbox" aria-label="Хичээл">
-        {matches.length === 0 && <li className="muted small pad">Тохирох хичээл олдсонгүй.</li>}
+        {loading && <li className="muted small pad">Ачаалж байна…</li>}
+        {!loading && matches.length === 0 && <li className="muted small pad">Тохирох хичээл олдсонгүй.</li>}
         {matches.map((s) => (
           <li key={s.id}>
             <button type="button" role="option" aria-selected="false" onClick={() => onChange(String(s.id))}>

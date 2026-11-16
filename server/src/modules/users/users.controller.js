@@ -14,16 +14,25 @@ export async function getAnswers(req, res) {
   res.json({ answers: await service.getAnswers(requireId(req.params.id)) });
 }
 
+// Илгээсэн талбарыг л өөрчилнө. Илгээгээгүй талбар хэвээр үлдэнэ,
+// null эсвэл хоосон утга нь тухайн талбарыг арилгана (QA тест: зөвхөн нэр илгээхэд сургууль, курс хоосордог байсан).
 export async function updateMe(req, res) {
-  const name = requireString(req.body?.name, 'Нэр', { min: 2, max: 100 });
-  const faculty = optionalString(req.body?.faculty, 'Бүрэлдэхүүн сургууль', { max: 150 });
-  let year;
-  if (req.body?.year !== undefined && req.body.year !== null && req.body.year !== '') {
-    year = Number(req.body.year);
-    if (!Number.isInteger(year) || year < 1 || year > 6) throw badRequest('Курс 1–6 байна');
+  const b = req.body ?? {};
+  const has = (k) => Object.hasOwn(b, k);
+  const changes = {};
+  if (has('name')) changes.name = requireString(b.name, 'Нэр', { min: 2, max: 100 });
+  if (has('faculty')) changes.faculty = optionalString(b.faculty, 'Бүрэлдэхүүн сургууль', { max: 150 }) ?? null;
+  if (has('year')) {
+    if (b.year === null || b.year === '') changes.year = null;
+    else {
+      const year = Number(b.year);
+      if (!Number.isInteger(year) || year < 1 || year > 6) throw badRequest('Курс 1–6 байна');
+      changes.year = year;
+    }
   }
-  const notifyNewQuestions = optionalBoolean(req.body?.notifyNewQuestions, 'notifyNewQuestions');
-  res.json({ user: await service.updateProfile(req.user.id, { name, faculty, year, notifyNewQuestions }) });
+  if (has('notifyNewQuestions')) changes.notifyNewQuestions = optionalBoolean(b.notifyNewQuestions, 'notifyNewQuestions');
+  if (!Object.keys(changes).length) throw badRequest('Өөрчлөх талбар алга');
+  res.json({ user: await service.updateProfile(req.user.id, changes) });
 }
 
 export async function setMySubjects(req, res) {

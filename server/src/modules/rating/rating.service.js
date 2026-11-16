@@ -71,6 +71,12 @@ export async function accept(user, questionId, answerId) {
 // Хариулт устгагдахад (эзэн эсвэл админ) түүгээр олсон оноог буцаана.
 // Ингэснээр USERS.reputation нь бодит үнэлгээтэй үргэлж тохирно.
 export async function revokeAnswerPoints(db, answer) {
+  // Админ нуухад оноо аль хэдийн буцаагдсан: дахин хасахгүй
+  const { rows } = await db.query(
+    'SELECT a.is_hidden OR q.is_hidden AS hidden FROM answers a JOIN questions q ON q.id = a.question_id WHERE a.id = $1',
+    [answer.id],
+  );
+  if (!rows[0] || rows[0].hidden) return;
   const votes = await repo.countAwardedVotes(db, answer.id);
   let delta = -votes * POINTS.vote;
   if (answer.is_accepted && answer.author_id !== answer.question_author_id) delta -= POINTS.accepted;

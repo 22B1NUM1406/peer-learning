@@ -1,5 +1,7 @@
 import { config } from '../../config.js';
 import { requireEmail, requireString } from '../../lib/validate.js';
+import { tooMany } from '../../lib/errors.js';
+import { loginBlockedFor, recordLoginFailure, recordLoginSuccess } from '../../lib/rateLimit.js';
 import * as service from './auth.service.js';
 
 // Controller давхарга: HTTP хүсэлтийн оролтыг шалгаж, service-ийг дуудаж, хариу буцаана.
@@ -29,7 +31,21 @@ export async function register(req, res) {
 export async function login(req, res) {
   const email = requireEmail(req.body?.email);
   const password = requireString(req.body?.password, 'Нууц үг', { max: 128 });
-  const { user, session } = await service.login({ email, password });
+  const key = { email, ip: req.ip };
+  const wait = loginBlockedFor(key);
+  if (wait) {
+    res.set('Retry-After', String(wait));
+    throw tooMany(`Буруу оролдлого хэт олон боллоо. ${Math.ceil(wait / 60)} минутын дараа дахин оролдоно уу`);
+  }
+  let result;
+  try {
+    result = await service.login({ email, password });
+  } catch (err) {
+    if (err.status === 401) recordLoginFailure(key);
+    throw err;
+  }
+  recordLoginSuccess(key);
+  const { user, session } = result;
   setSessionCookie(res, session);
   res.json({ user: me(user) });
 }
