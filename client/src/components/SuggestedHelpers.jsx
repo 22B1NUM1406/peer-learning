@@ -4,7 +4,7 @@ import { useApi } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { Avatar } from './ui.jsx';
 
-// Санал 1 (Ask → Match): тухайн хичээлд туслах боломжтой оюутнуудыг тэр хичээлд авсан
+// FR-28: тухайн хичээлд туслах боломжтой оюутнуудыг тэр хичээлд авсан
 // "тусалсан" хариултын тоогоор эрэмбэлж санал болгоно. Өгөгдөл: GET /subjects/:id/helpers (FR-04).
 export default function SuggestedHelpers({ subjectId, limit = 3, title = 'Энэ хичээлд туслах боломжтой оюутнууд', note }) {
   const { user } = useAuth();

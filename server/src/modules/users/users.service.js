@@ -31,7 +31,7 @@ export async function getProfile(id, viewer) {
   };
 }
 
-// Санал 4: тэмдэг. Тусдаа хүснэгтэд хадгалахгүй, бодит өгөгдлөөс тооцно (нуусан контент тооцогдохгүй).
+// FR-30: тэмдэг. Тусдаа хүснэгтэд хадгалахгүй, бодит өгөгдлөөс тооцно (нуусан контент тооцогдохгүй).
 export function badgesFor(p, topSubjects = []) {
   const list = [
     { key: 'first_answer', name: 'Анхны хариулт', description: 'Анхны хариултаа бичсэн', earned: p.answerCount >= 1 },

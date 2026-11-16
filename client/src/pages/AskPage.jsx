@@ -111,7 +111,7 @@ export default function AskPage() {
         </label>
 
         {!editing && (
-          // Санал 2: нэрээ нуух сонголтыг ойлгомжтой болгох — бусдад яаж харагдахыг шууд харуулна (FR-20)
+          // FR-20: нэрээ нуух сонголтыг ойлгомжтой болгох — бусдад яаж харагдахыг шууд харуулна (FR-20)
           <fieldset className="anon-choice">
             <legend>Бусад оюутанд хэрхэн харагдах вэ?</legend>
             <label className={`anon-option ${!form.isAnonymous ? 'on' : ''}`}>

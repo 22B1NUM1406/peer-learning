@@ -190,7 +190,7 @@ function UserAnswers({ userId }) {
   );
 }
 
-// Санал 4: дараагийн түвшин хүртэлх явц
+// FR-30: дараагийн түвшин хүртэлх явц
 function LevelBar({ level, reputation }) {
   const prev = { newcomer: 0, helper: 10, active: 50, expert: 200 }[level.key] ?? 0;
   const pct = level.nextAt ? Math.min(100, Math.round(((reputation - prev) / (level.nextAt - prev)) * 100)) : 100;
@@ -207,7 +207,7 @@ function LevelBar({ level, reputation }) {
   );
 }
 
-// Санал 7: хадгалсан асуултууд (зөвхөн өөрт)
+// FR-34: хадгалсан асуултууд (зөвхөн өөрт)
 function SavedQuestions() {
   const { data, loading } = useApi('/users/me/bookmarks');
   if (loading) return <Loading />;

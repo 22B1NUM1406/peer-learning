@@ -73,7 +73,7 @@ export async function updateProfile(id, changes) {
   return rows[0];
 }
 
-// Санал 7: хичээл тус бүрээр асуусан, хариулсан, тусалсан тоо (идэвхтэйгээс нь эхлэн, 8 хүртэл).
+// FR-34: хичээл тус бүрээр асуусан, хариулсан, тусалсан тоо (идэвхтэйгээс нь эхлэн, 8 хүртэл).
 // Нэрээ нуусан асуултыг зөвхөн өөрт нь харуулахын тулд includeAnonymous-аар шүүнэ.
 export async function subjectActivity(userId, { includeAnonymous }) {
   const { rows } = await query(

@@ -27,7 +27,7 @@ async function requireVisibleQuestion(id, viewer) {
 export async function createQuestion(user, data) {
   await requireActiveSubject(data.subjectId);
   const id = await repo.createQuestion({ authorId: user.id, ...data });
-  // FR-30 (Ask → Match): тухайн хичээлд туслах боломжтой оюутнуудад мэдэгдэнэ
+  // FR-28, FR-35: тухайн хичээлд туслах боломжтой оюутнуудад мэдэгдэнэ
   await notifySubjectHelpers({ subjectId: data.subjectId, questionId: id, exceptUserId: user.id });
   return id;
 }
@@ -75,7 +75,7 @@ export async function getQuestion(id, viewer) {
       isAccepted: a.is_accepted,
       voteCount: a.vote_count,
       votedByMe: a.voted_by_me,
-      // Санал 6: хариулагчийн тухайн хичээлд "тусалсан" хариултын тоо (туршлага)
+      // FR-32: хариулагчийн тухайн хичээлд "тусалсан" хариултын тоо (туршлага)
       authorAcceptedInSubject: a.author_accepted_in_subject,
       comments: comments.filter((c) => c.answer_id === a.id).map(toComment),
     })),
@@ -103,7 +103,7 @@ export async function createAnswer(user, questionId, body) {
   const id = await repo.createAnswer({ questionId, authorId: user.id, body });
   // FR-19: асуугчид мэдэгдэнэ (өөрийн асуултад хариулбал мэдэгдэхгүй)
   if (q.author_id !== user.id) await notify({ userId: q.author_id, type: 'new_answer', questionId });
-  // FR-30: асуултыг хадгалсан оюутнуудад мэдэгдэнэ
+  // FR-35: асуултыг хадгалсан оюутнуудад мэдэгдэнэ
   await notifyFollowers({ questionId, exceptUserIds: [user.id, q.author_id] });
   return id;
 }
@@ -162,7 +162,7 @@ export async function bookmark(user, questionId, on) {
   return { bookmarked: on };
 }
 
-// Санал 5: асуултын хуудсанд төстэй асуултууд
+// FR-33: асуултын хуудсанд төстэй асуултууд
 export async function related(user, questionId) {
   await requireVisibleQuestion(questionId, user);
   return repo.relatedQuestions(questionId);

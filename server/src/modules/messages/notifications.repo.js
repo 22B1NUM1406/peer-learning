@@ -19,7 +19,7 @@ export async function createNotificationOnce({ userId, type, questionId }, db = 
   );
 }
 
-// FR-30: шинэ асуултыг тухайн хичээлд туслах боломжтой гэж бүртгүүлсэн, мэдэгдэл авахыг
+// FR-35: шинэ асуултыг тухайн хичээлд туслах боломжтой гэж бүртгүүлсэн, мэдэгдэл авахыг
 // зөвшөөрсөн идэвхтэй оюутнуудад мэдэгдэнэ (асуугчаас бусад). Нэг асуулгаар бүгдэд нь.
 export async function notifySubjectHelpers({ subjectId, questionId, exceptUserId }, db = { query }) {
   const r = await db.query(
@@ -33,7 +33,7 @@ export async function notifySubjectHelpers({ subjectId, questionId, exceptUserId
   return r.rowCount;
 }
 
-// FR-30: хадгалсан (дагаж буй) асуултад шинэ хариулт ирэхэд мэдэгдэнэ.
+// FR-35: хадгалсан (дагаж буй) асуултад шинэ хариулт ирэхэд мэдэгдэнэ.
 // Хариулагч болон асуугч (тэр аль хэдийн new_answer авна) хасагдана.
 export async function notifyFollowers({ questionId, exceptUserIds }, db = { query }) {
   await db.query(

@@ -8,7 +8,7 @@ import * as repo from './rating.repo.js';
 // "Тусалсан" нь асуугч асуудлаа шийдсэнийг илэрхийлэх тул илүү өндөр жинтэй.
 export const POINTS = { vote: 2, accepted: 10 };
 
-// Оноог хуурахаас хамгаалах: нэг оюутан нэг хүний хариултуудад 24 цагт хамгийн ихдээ 3 удаа
+// FR-29, оноог хуурахаас хамгаалах: нэг оюутан нэг хүний хариултуудад 24 цагт хамгийн ихдээ 3 удаа
 // оноо өгнө. Үүнээс хойших үнэлгээ хариултын "тустай" тоонд орох ч оноо өгөхгүй
 // (хоёр оюутан бие биедээ олон удаа үнэлгээ өгч оноо цуглуулахаас сэргийлнэ).
 export const DAILY_POINTS_PER_PAIR = 3;
@@ -22,7 +22,7 @@ export async function vote(user, answerId) {
     const awarded = (await repo.countAwardedToAuthor(db, user.id, answer.author_id)) < DAILY_POINTS_PER_PAIR;
     if (!(await repo.insertVote(db, user.id, answerId, awarded))) throw conflict('Та энэ хариултыг аль хэдийн үнэлсэн');
     if (awarded) await repo.addReputation(db, answer.author_id, POINTS.vote);
-    // FR-30: хариулагчид мэдэгдэнэ (уншаагүй ижил мэдэгдэл байвал давхардуулахгүй)
+    // FR-35: хариулагчид мэдэгдэнэ (уншаагүй ижил мэдэгдэл байвал давхардуулахгүй)
     await notifyOnce({ userId: answer.author_id, type: 'vote', questionId: answer.question_id }, db);
     return repo.countVotes(db, answerId);
   });
