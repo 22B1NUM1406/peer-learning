@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import QuestionCard from '../components/QuestionCard.jsx';
 import CommunitySidebar from '../components/CommunitySidebar.jsx';
+import HelpQueue from '../components/HelpQueue.jsx';
 import { Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
 
 const SORTS = [['new', 'Шинэ', Sparkles], ['unanswered', 'Хариултгүй', CircleHelp], ['popular', 'Түгээмэл', Flame]];
@@ -137,6 +138,7 @@ export default function HomePage() {
             <Link to={`/users/${user.id}?edit=1`} className="btn btn-secondary btn-sm">Туслах хичээл сонгох</Link>
           </section>
         )}
+        {me.data && me.data.user.helpSubjects.length > 0 && <HelpQueue subjects={me.data.user.helpSubjects} userId={user.id} />}
         <CommunitySidebar stats={stats} />
       </div>
     </div>

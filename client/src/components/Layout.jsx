@@ -114,14 +114,17 @@ export default function Layout() {
         )}
 
         <div className="side-me">
-          <Link to={`/users/${user.id}`} className="me-link" title="Миний профайл">
-            <Avatar name={user.name} size={32} />
-            <span className="me-text side-label">
-              <strong>{user.name}</strong>
-              <span>{level ? `${level.name} · ` : ''}{user.reputation} оноо</span>
-            </span>
-          </Link>
-          <button className="icon-btn side-logout" onClick={onLogout} aria-label="Гарах" title="Гарах"><LogOut size={17} /></button>
+          <div className="side-me-row">
+            <Link to={`/users/${user.id}`} className="me-link" title="Миний профайл">
+              <Avatar name={user.name} size={32} />
+              <span className="me-text side-label">
+                <strong>{user.name}</strong>
+                <span>{level ? level.name : user.role === 'admin' ? 'Админ' : 'Оюутан'}</span>
+              </span>
+            </Link>
+            <button className="icon-btn side-logout" onClick={onLogout} aria-label="Гарах" title="Гарах"><LogOut size={17} /></button>
+          </div>
+          {level && user.role !== 'admin' && <LevelMeter level={level} reputation={user.reputation} />}
         </div>
       </aside>
 
@@ -151,6 +154,19 @@ export default function Layout() {
           ? <NavLink to="/admin/reports"><Flag size={21} />Админ</NavLink>
           : <NavLink to={`/users/${user.id}`}><User size={21} />Профайл</NavLink>}
       </nav>
+    </div>
+  );
+}
+
+// Хажуугийн цэсний доод хэсэг: дараагийн түвшин хүртэлх явц (FR-30)
+const LEVEL_FROM = { newcomer: 0, helper: 10, active: 50, expert: 200 };
+function LevelMeter({ level, reputation }) {
+  const from = LEVEL_FROM[level.key] ?? 0;
+  const pct = level.nextAt ? Math.min(100, Math.round(((reputation - from) / (level.nextAt - from)) * 100)) : 100;
+  return (
+    <div className="me-level side-label" title={level.nextAt ? `“${level.nextName}” хүртэл ${level.nextAt - reputation} оноо` : 'Хамгийн дээд түвшин'}>
+      <div className="me-level-row"><span>{reputation} оноо</span><span>{level.nextAt ? `${level.nextName}: ${level.nextAt}` : 'Дээд түвшин'}</span></div>
+      <div className="meter gold"><span style={{ width: `${pct}%` }} /></div>
     </div>
   );
 }

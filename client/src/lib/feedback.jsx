@@ -57,13 +57,29 @@ export const useFeedback = () => useContext(FeedbackContext);
 // Нийтлэг цонх: Esc болон гадна дарахад хаагдана, нээгдэхэд анхаарлыг цонх руу шилжүүлнэ
 export function Dialog({ title, onClose, children, label }) {
   const ref = useRef(null);
+  // onClose нь render бүрт шинэ функц байж болно: ref-ээр дамжуулж, эффектийг нэг л удаа ажиллуулна
+  // (эс бөгөөс цонх доторх талбарт бичих бүрд анхаарал үсэрнэ)
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeRef.current();
+      // Tab-ийг цонх дотор эргүүлнэ: гарнаас ашиглахад анхаарал арын хуудас руу гарахгүй
+      if (e.key === 'Tab' && ref.current) {
+        const items = [...ref.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+          .filter((el) => !el.disabled && el.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.activeElement;
     if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="dialog-backdrop" onMouseDown={onClose}>

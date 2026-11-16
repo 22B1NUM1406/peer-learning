@@ -4,6 +4,7 @@ import { api } from '../lib/api.js';
 import { useDebounced, useSchools, useSubjectsState } from '../lib/hooks.js';
 import SubjectPicker from '../components/SubjectPicker.jsx';
 import SuggestedHelpers from '../components/SuggestedHelpers.jsx';
+import MarkdownEditor from '../components/MarkdownEditor.jsx';
 import { EyeOff, User } from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import { ErrorText, Loading, PageHeader } from '../components/ui.jsx';
@@ -113,10 +114,11 @@ export default function AskPage() {
           )}
         </div>
 
-        <label>Дэлгэрэнгүй
-          <textarea value={form.body} onChange={set('body')} required minLength={10} maxLength={10000} rows={9}
-            placeholder="Юуг ойлгохгүй байгаа, юу оролдсоноо бичвэл илүү сайн хариулт авна." />
-        </label>
+        <div className="field">
+          <label htmlFor="q-body" className="field-label">Дэлгэрэнгүй</label>
+          <MarkdownEditor id="q-body" value={form.body} onChange={(body) => setForm((f) => ({ ...f, body }))} required rows={9}
+            placeholder="Юуг ойлгохгүй байгаа, юу оролдсоноо бичвэл илүү сайн хариулт авна. Кодоо ``` дотор хуулж оруулаарай." />
+        </div>
 
         {!editing && (
           // FR-20: нэрээ нуух сонголтыг ойлгомжтой болгох — бусдад яаж харагдахыг шууд харуулна (FR-20)
