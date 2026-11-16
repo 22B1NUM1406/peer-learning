@@ -265,7 +265,11 @@ p.error { display: block; }
    Хүрээ: хажуугийн цэс, дээд мөр, агуулга
    ========================================================================= */
 
-.shell { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; }
+.shell {
+  display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh;
+  /* Урт хуудсанд хажуугийн цэсний дэвсгэр ба хүрээ доош үргэлжилнэ */
+  background: linear-gradient(90deg, var(--gray-25) calc(var(--sidebar-w) - 1px), var(--line) calc(var(--sidebar-w) - 1px), var(--line) var(--sidebar-w), transparent var(--sidebar-w));
+}
 
 .sidebar {
   position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
@@ -902,7 +906,7 @@ p.error { display: block; }
 
 /* Утас */
 @media (max-width: 720px) {
-  .shell { grid-template-columns: minmax(0, 1fr); }
+  .shell { grid-template-columns: minmax(0, 1fr); background: none; }
   .sidebar { display: none; }
   .topbar { padding: 0 12px; gap: 6px; height: 52px; }
   .brand-mobile { display: flex; }
