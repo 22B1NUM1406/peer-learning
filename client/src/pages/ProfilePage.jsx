@@ -1,31 +1,36 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { timeAgo } from '../lib/format.js';
 import { Avatar, Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
-import { Award, Lock } from 'lucide-react';
+import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Pencil, X } from 'lucide-react';
+import { useFeedback } from '../lib/feedback.jsx';
+import { notifyProfileChanged } from '../components/Layout.jsx';
 
 // P7: Профайл (FR-03, FR-04, FR-22, FR-24) + түвшин, тэмдэг (санал 4), хувийн статистик ба хадгалсан (санал 7)
 export default function ProfilePage() {
   const { id } = useParams();
   const { data, error, loading, reload } = useApi(`/users/${id}`);
-  const [editing, setEditing] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const editing = params.get('edit') === '1';
+  const setEditing = (on) => setParams(on ? { edit: '1' } : {}, { replace: true });
   const [tab, setTab] = useState('questions');
 
   if (loading && !data) return <Loading />;
-  if (error) return <ErrorText error={error} />;
+  if (error) return <ErrorText error={error} onRetry={reload} />;
   const u = data.user;
 
   return (
     <>
-      <section className="card profile-head">
+      <section className="profile-head">
         <Avatar name={u.name} size={64} />
-        <div className="grow">
+        <div className="grow profile-id">
           <h1>{u.name}</h1>
-          <div className="muted">{[u.faculty, u.year && `${u.year}-р курс`].filter(Boolean).join(' · ') || 'Мэдээлэл оруулаагүй'}</div>
+          <div className="profile-sub">{[u.faculty, u.year && `${u.year}-р курс`].filter(Boolean).join(', ') || 'Сургууль, курс оруулаагүй'}</div>
           <div className="chips">
+            {u.helpSubjects.length > 0 && <span className="chips-label">Тусалдаг:</span>}
             {u.helpSubjects.map((s) => <Link key={s.id} to={`/subjects/${s.id}?tab=helpers`} className="tag">{s.name}</Link>)}
             {u.helpSubjects.length === 0 && <span className="muted small">Туслах хичээл сонгоогүй</span>}
           </div>
@@ -39,17 +44,17 @@ export default function ProfilePage() {
         <LevelBar level={u.level} reputation={u.reputation} />
         <div className="profile-actions">
           {u.isMe
-            ? <button className="btn btn-ghost" onClick={() => setEditing(!editing)}>{editing ? 'Хаах' : 'Профайл засах'}</button>
-            : <Link to={`/messages/${u.id}`} className="btn btn-primary">Мессеж бичих</Link>}
+            ? <button className="btn btn-secondary" onClick={() => setEditing(!editing)}>{editing ? <><X size={15} />Хаах</> : <><Pencil size={15} />Профайл засах</>}</button>
+            : <Link to={`/messages/${u.id}`} className="btn btn-primary"><MessageCircle size={15} />Мессеж бичих</Link>}
         </div>
       </section>
 
-      {u.isMe && <p className="muted small pad-x">Оноо: “тустай” үнэлгээ бүрд 2, “тусалсан” хариулт бүрд 10 оноо. Нэг оюутнаас өдөрт 3 удаагаас илүү оноо авахгүй.</p>}
-      {editing && <EditProfile user={u} onSaved={() => { setEditing(false); reload(); }} />}
+      {u.isMe && editing && <EditProfile user={u} onSaved={() => { setEditing(false); reload(); }} />}
+      {u.isMe && !editing && <p className="points-note">Оноо: “тустай” үнэлгээ бүрд 2, “тусалсан” хариулт бүрд 10. Нэг оюутнаас өдөрт 3 удаагаас илүү оноо авахгүй.</p>}
 
       <div className="profile-grid">
-        <section className="card pad">
-          <h2 className="section-title no-top">Суралцах идэвх</h2>
+        <section className="panel">
+          <h2 className="panel-title">Суралцах идэвх</h2>
           <div className="mini-stats">
             <div><strong>{u.helpedStudents}</strong><span>оюутанд тусалсан</span></div>
             <div><strong>{u.votesReceived}</strong><span>“тустай” үнэлгээ авсан</span></div>
@@ -67,10 +72,10 @@ export default function ProfilePage() {
                 ))}
               </tbody>
             </table>
-          ) : <p className="muted small">Одоогоор идэвх алга.</p>}
+          ) : <p className="muted small">Одоогоор идэвх алга. Асуулт асуух, хариулах бүрд хичээлээр энд тоологдоно.</p>}
         </section>
-        <section className="card pad">
-          <h2 className="section-title no-top">Тэмдэг</h2>
+        <section className="panel">
+          <h2 className="panel-title">Тэмдэг <span className="muted small">{u.badges.filter((b) => b.earned).length}/{u.badges.length}</span></h2>
           <ul className="badge-list">
             {u.badges.map((b) => (
               <li key={b.key} className={b.earned ? 'earned' : ''} title={b.description}>
@@ -83,7 +88,7 @@ export default function ProfilePage() {
       </div>
 
       <Tabs
-        tabs={[['questions', 'Асуултууд'], ['answers', 'Хариултууд'], ...(u.isMe ? [['saved', 'Хадгалсан']] : [])]}
+        tabs={[['questions', 'Асуултууд', MessagesSquare, u.questionCount], ['answers', 'Хариултууд', MessageSquareText, u.answerCount], ...(u.isMe ? [['saved', 'Хадгалсан', Bookmark]] : [])]}
         value={tab} onChange={setTab}
       />
       {tab === 'questions' && <UserQuestions userId={id} />}
@@ -97,10 +102,18 @@ function EditProfile({ user, onSaved }) {
   const subjects = useSubjects();
   const schools = useSchools();
   const { refresh } = useAuth();
+  const { toast } = useFeedback();
   const [form, setForm] = useState({ name: user.name, faculty: user.faculty ?? '', year: user.year ?? '', notifyNewQuestions: user.notifyNewQuestions ?? true });
   const [helpIds, setHelpIds] = useState(user.helpSubjects.map((s) => s.id));
   const [error, setError] = useState(null);
 
+  const [filter, setFilter] = useState('');
+  const [initialIds] = useState(() => user.helpSubjects.map((s) => s.id));   // дарах бүрд мөр үсрэхгүйн тулд
+  // Сонгосон хичээлүүд эхэнд; хайлтаар шүүнэ (хичээл олон болоход жагсаалт урт болдог)
+  const f = filter.trim().toLowerCase();
+  const shown = subjects
+    .filter((s) => !f || s.name.toLowerCase().includes(f) || (s.code ?? '').toLowerCase().includes(f))
+    .sort((a, b) => Number(initialIds.includes(b.id)) - Number(initialIds.includes(a.id)));
   const toggle = (sid) => setHelpIds((ids) => (ids.includes(sid) ? ids.filter((x) => x !== sid) : [...ids, sid]));
 
   const save = async (e) => {
@@ -109,12 +122,15 @@ function EditProfile({ user, onSaved }) {
       await api('/users/me', { method: 'PATCH', body: { ...form, year: form.year === '' ? null : Number(form.year) } });
       await api('/users/me/subjects', { method: 'PUT', body: { subjectIds: helpIds } });
       refresh();
+      notifyProfileChanged();
+      toast('Профайл хадгалагдлаа');
       onSaved();
     } catch (err) { setError(err); }
   };
 
   return (
-    <form onSubmit={save} className="card form pad-lg">
+    <form onSubmit={save} className="form panel edit-profile">
+      <h2 className="panel-title">Профайл засах</h2>
       <div className="grid-2">
         <label>Нэр<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} maxLength={100} /></label>
         <label>Бүрэлдэхүүн сургууль
@@ -133,13 +149,16 @@ function EditProfile({ user, onSaved }) {
         </label>
       </div>
       <fieldset>
-        <legend>Туслах боломжтой хичээлүүд</legend>
+        <legend>Туслах боломжтой хичээлүүд <span className="optional">{helpIds.length} сонгосон</span></legend>
+        <input type="search" className="check-filter" placeholder="Хичээл хайх" aria-label="Туслах хичээл хайх"
+          value={filter} onChange={(e) => setFilter(e.target.value)} />
         <div className="check-grid">
-          {subjects.map((s) => (
-            <label key={s.id} className="check">
+          {shown.map((s) => (
+            <label key={s.id} className={`check ${helpIds.includes(s.id) ? 'on' : ''}`}>
               <input type="checkbox" checked={helpIds.includes(s.id)} onChange={() => toggle(s.id)} /> {subjectLabel(s)}
             </label>
           ))}
+          {shown.length === 0 && <span className="muted small">Тохирох хичээл алга</span>}
         </div>
       </fieldset>
       <label className="check">
@@ -150,7 +169,10 @@ function EditProfile({ user, onSaved }) {
         </span>
       </label>
       <ErrorText error={error} />
-      <div className="row-end"><button className="btn btn-primary">Хадгалах</button></div>
+      <div className="row-end form-foot">
+        <button type="button" className="btn btn-secondary" onClick={onSaved}>Болих</button>
+        <button className="btn btn-primary">Хадгалах</button>
+      </div>
     </form>
   );
 }
@@ -158,14 +180,14 @@ function EditProfile({ user, onSaved }) {
 function UserQuestions({ userId }) {
   const { data, loading } = useApi(`/users/${userId}/questions`);
   if (loading) return <Loading />;
-  if (!data?.questions.length) return <Empty>Асуулт алга.</Empty>;
+  if (!data?.questions.length) return <Empty title="Асуулт алга" />;
   return (
-    <ul className="simple-list card">
+    <ul className="simple-list">
       {data.questions.map((q) => (
         <li key={q.id}>
           <Link to={`/questions/${q.id}`}>{q.title}</Link>
           {q.isAnonymous && <span className="tag tag-muted">нэрээ нуусан</span>}
-          <span className="muted small"> · {q.subject.name} · {q.answerCount} хариулт{q.hasAccepted ? ' ✓' : ''} · {timeAgo(q.createdAt)}</span>
+          <span className="list-meta"><span>{q.subject.name}</span><span className={`mini-count ${q.hasAccepted ? 'accepted' : ''}`}>{q.answerCount} хариулт</span><span>{timeAgo(q.createdAt)}</span></span>
         </li>
       ))}
     </ul>
@@ -175,15 +197,17 @@ function UserQuestions({ userId }) {
 function UserAnswers({ userId }) {
   const { data, loading } = useApi(`/users/${userId}/answers`);
   if (loading) return <Loading />;
-  if (!data?.answers.length) return <Empty>Хариулт алга.</Empty>;
+  if (!data?.answers.length) return <Empty title="Хариулт алга" />;
   return (
-    <ul className="simple-list card">
+    <ul className="simple-list">
       {data.answers.map((a) => (
         <li key={a.id}>
-          {a.isAccepted && <span className="tag tag-ok">✓ тусалсан</span>}
           <Link to={`/questions/${a.questionId}`}>{a.questionTitle}</Link>
-          <span className="muted small"> · ▲{a.voteCount} · {timeAgo(a.createdAt)}</span>
-          <p className="muted small clamp">{a.excerpt}</p>
+          <span className="list-meta">
+            {a.isAccepted && <span className="mini-count accepted">тусалсан</span>}
+            <span>{a.voteCount} тустай</span><span>{timeAgo(a.createdAt)}</span>
+          </span>
+          <p className="list-excerpt">{a.excerpt}</p>
         </li>
       ))}
     </ul>
@@ -211,13 +235,13 @@ function LevelBar({ level, reputation }) {
 function SavedQuestions() {
   const { data, loading } = useApi('/users/me/bookmarks');
   if (loading) return <Loading />;
-  if (!data?.questions.length) return <Empty>Хадгалсан асуулт алга. Асуултын хуудсанд “Хадгалах”-ыг дарж хадгална.</Empty>;
+  if (!data?.questions.length) return <Empty icon={Bookmark} title="Хадгалсан асуулт алга">Асуултын хуудсанд “Хадгалах”-ыг дарвал энд гарч, шинэ хариулт ирэхэд мэдэгдэнэ.</Empty>;
   return (
-    <ul className="simple-list card">
+    <ul className="simple-list">
       {data.questions.map((q) => (
         <li key={q.id}>
           <Link to={`/questions/${q.id}`}>{q.title}</Link>
-          <span className="muted small"> · {q.subject.name} · {q.answerCount} хариулт{q.hasAccepted ? ' · тусалсан хариулттай' : ''} · {timeAgo(q.savedAt)} хадгалсан</span>
+          <span className="list-meta"><span>{q.subject.name}</span><span className={`mini-count ${q.hasAccepted ? 'accepted' : ''}`}>{q.answerCount} хариулт</span><span>{timeAgo(q.savedAt)} хадгалсан</span></span>
         </li>
       ))}
     </ul>

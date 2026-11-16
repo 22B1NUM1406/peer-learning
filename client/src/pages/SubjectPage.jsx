@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, FileText, ImageIcon, Link2, Plus } from 'lucide-react';
+import { BookOpen, FileText, FolderOpen, ImageIcon, Link2, MessagesSquare, Plus, Trash2, Users } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
+import { useFeedback } from '../lib/feedback.jsx';
+import { notifyProfileChanged } from '../components/Layout.jsx';
 import { fileSize, timeAgo } from '../lib/format.js';
 import QuestionCard from '../components/QuestionCard.jsx';
 import ReportButton from '../components/ReportButton.jsx';
@@ -18,26 +20,27 @@ export default function SubjectPage() {
 
   if (error) return <ErrorText error={error} />;
   if (!data) return <Loading />;
+  const sj = data.subject;
 
   return (
     <>
-      <div className="page-head">
-        <div className="icon-title">
-          <span className="subject-icon"><BookOpen size={20} /></span>
-          <div>
-            {data.subject.code && <span className="subject-code block">{data.subject.code}</span>}
-            <h1 className="no-top" style={{ marginBottom: 0 }}>{data.subject.name}</h1>
-            {data.subject.schoolId && (
-              <Link to={`/subjects?school=${data.subject.schoolId}`} className="muted small">
-                {[data.subject.schoolShortName, data.subject.departmentName].filter(Boolean).join(' · ')}
-              </Link>
-            )}
-          </div>
+      <header className="page-head subject-head">
+        <span className="subject-icon lg"><BookOpen size={20} /></span>
+        <div className="page-head-text">
+          <h1>{sj.code && <span className="subject-code">{sj.code}</span>}{sj.name}</h1>
+          {sj.schoolId && (
+            <p className="page-sub">
+              <Link to={`/subjects?school=${sj.schoolId}`}>{sj.schoolShortName}</Link>
+              {sj.departmentName && <span>{sj.departmentName}</span>}
+            </p>
+          )}
         </div>
-        <Link to={`/questions/new?subject=${id}`} className="btn btn-primary"><Plus size={17} />Энэ хичээлээр асуух</Link>
-      </div>
+        <div className="page-actions">
+          <Link to={`/questions/new?subject=${id}`} className="btn btn-primary"><Plus size={16} />Энэ хичээлээр асуух</Link>
+        </div>
+      </header>
       <Tabs
-        tabs={[['questions', 'Асуултууд'], ['resources', 'Материал'], ['helpers', 'Туслах боломжтой оюутнууд']]}
+        tabs={[['questions', 'Асуултууд', MessagesSquare, sj.questionCount], ['resources', 'Материал', FolderOpen], ['helpers', 'Туслах боломжтой оюутнууд', Users]]}
         value={tab}
         onChange={(t) => setParams(t === 'questions' ? {} : { tab: t }, { replace: true })}
       />
@@ -52,7 +55,14 @@ function SubjectQuestions({ subjectId }) {
   const { data, error, loading } = useApi('/questions', { subject: subjectId });
   if (loading) return <Loading />;
   if (error) return <ErrorText error={error} />;
-  if (!data.questions.length) return <Empty>Энэ хичээлээр асуулт алга.</Empty>;
+  if (!data.questions.length) {
+    return (
+      <Empty title="Энэ хичээлээр асуулт алга"
+        action={<Link to={`/questions/new?subject=${subjectId}`} className="btn btn-primary btn-sm"><Plus size={15} />Анхны асуултыг асуух</Link>}>
+        Ойлгохгүй байгаа зүйлээ асуувал энэ хичээлийн туслагчдад мэдэгдэл очно.
+      </Empty>
+    );
+  }
   return (
     <ul className="q-list">
       {data.questions.map((q) => <QuestionCard key={q.id} q={q} showSubject={false} />)}
@@ -62,35 +72,46 @@ function SubjectQuestions({ subjectId }) {
 
 function Resources({ subjectId }) {
   const { data, error, loading, reload } = useApi(`/subjects/${subjectId}/resources`);
+  const { toast, confirm } = useFeedback();
 
   const remove = async (r) => {
-    if (!confirm(`“${r.title}”-ийг устгах уу?`)) return;
-    await api(`/resources/${r.id}`, { method: 'DELETE' });
-    reload();
+    const ok = await confirm({ title: 'Материалыг устгах уу?', body: `“${r.title}” бүрмөсөн устгагдана.`, confirmLabel: 'Устгах', danger: true });
+    if (!ok) return;
+    try {
+      await api(`/resources/${r.id}`, { method: 'DELETE' });
+      toast('Материал устгагдлаа');
+      reload();
+    } catch (err) { toast(err.message, { tone: 'error' }); }
   };
 
   return (
     <>
-      <div className="row-end"><Link to={`/resources/new?subject=${subjectId}`} className="btn btn-ghost"><Plus size={17} />Материал нэмэх</Link></div>
+      <div className="tab-toolbar">
+        <span className="muted small">{data ? `${data.resources.length} материал` : ''}</span>
+        <Link to={`/resources/new?subject=${subjectId}`} className="btn btn-secondary btn-sm"><Plus size={15} />Материал нэмэх</Link>
+      </div>
       {loading && <Loading />}
-      <ErrorText error={error} />
-      {data?.resources.length === 0 && <Empty>Материал алга. Лекц, бие даалтын материалаа хуваалцаарай.</Empty>}
+      <ErrorText error={error} onRetry={reload} />
+      {data?.resources.length === 0 && (
+        <Empty icon={FolderOpen} title="Материал алга">Лекцийн слайд, бие даалтын жишээ, хэрэгтэй холбоосоо хуваалцаарай.</Empty>
+      )}
       <ul className="res-list">
         {data?.resources.map((r) => (
-          <li key={r.id} className="card res">
-            <span className={`res-icon ${r.kind}`} aria-hidden="true">{r.kind === 'link' ? <Link2 size={20} /> : r.mimeType === 'application/pdf' ? <FileText size={20} /> : <ImageIcon size={20} />}</span>
+          <li key={r.id} className="res">
+            <span className={`res-icon ${r.kind}`} aria-hidden="true">{r.kind === 'link' ? <Link2 size={17} /> : r.mimeType === 'application/pdf' ? <FileText size={17} /> : <ImageIcon size={17} />}</span>
             <div className="res-main">
               <a href={r.kind === 'link' ? r.url : r.fileUrl} target="_blank" rel="noopener noreferrer nofollow" className="res-title">{r.title}</a>
-              {r.description && <p className="muted small">{r.description}</p>}
-              <div className="muted small">
-                <Link to={`/users/${r.author.id}`}>{r.author.name}</Link> · {timeAgo(r.createdAt)}
-                {r.kind === 'file' && <> · {fileSize(r.fileSize)}</>}
-                {r.kind === 'link' && <> · {new URL(r.url).hostname}</>}
+              {r.description && <p className="res-desc">{r.description}</p>}
+              <div className="res-meta">
+                <Link to={`/users/${r.author.id}`}>{r.author.name}</Link>
+                <span>{timeAgo(r.createdAt)}</span>
+                {r.kind === 'file' && <span>{fileSize(r.fileSize)}</span>}
+                {r.kind === 'link' && <span>{new URL(r.url).hostname}</span>}
               </div>
             </div>
             <span className="actions">
               {r.canDelete
-                ? <button className="link-btn danger small" onClick={() => remove(r)}>Устгах</button>
+                ? <button className="link-btn danger" onClick={() => remove(r)}><Trash2 size={13} />Устгах</button>
                 : <ReportButton targetType="resource" targetId={r.id} />}
             </span>
           </li>
@@ -103,36 +124,41 @@ function Resources({ subjectId }) {
 function Helpers({ subjectId }) {
   const { user } = useAuth();
   const { data, error, loading, reload } = useApi(`/subjects/${subjectId}/helpers`);
+  const { toast } = useFeedback();
   const [busy, setBusy] = useState(false);
   const iAmHelper = data?.helpers.some((h) => h.id === user.id);
 
   // Энэ хичээлийг өөрийн туслах хичээлүүдэд нэмэх, хасах (FR-04)
   const toggle = async () => {
     setBusy(true);
-    const { user: me } = await api(`/users/${user.id}`);
-    const ids = me.helpSubjects.map((s) => s.id).filter((x) => x !== Number(subjectId));
-    if (!iAmHelper) ids.push(Number(subjectId));
-    await api('/users/me/subjects', { method: 'PUT', body: { subjectIds: ids } });
-    await reload();
+    try {
+      const { user: me } = await api(`/users/${user.id}`);
+      const ids = me.helpSubjects.map((s) => s.id).filter((x) => x !== Number(subjectId));
+      if (!iAmHelper) ids.push(Number(subjectId));
+      await api('/users/me/subjects', { method: 'PUT', body: { subjectIds: ids } });
+      await reload();
+      notifyProfileChanged();
+      toast(iAmHelper ? 'Туслагчаас хасагдлаа' : 'Туслагчаар нэмэгдлээ. Шинэ асуулт танд мэдэгдэнэ');
+    } catch (err) { toast(err.message, { tone: 'error' }); }
     setBusy(false);
   };
 
   return (
     <>
-      <div className="row-between">
-        <p className="muted small">“Тусалсан” хариултын тоогоор эрэмбэлсэн</p>
-        <button className="btn btn-ghost btn-sm" onClick={toggle} disabled={busy || loading}>
+      <div className="tab-toolbar">
+        <span className="muted small">“Тусалсан” хариултын тоогоор эрэмбэлсэн</span>
+        <button className={`btn btn-sm ${iAmHelper ? 'btn-secondary' : 'btn-primary'}`} onClick={toggle} disabled={busy || loading}>
           {iAmHelper ? 'Туслагчаас хасагдах' : 'Би энэ хичээлд туслах боломжтой'}
         </button>
       </div>
       {loading && <Loading />}
       <ErrorText error={error} />
-      {data?.helpers.length === 0 && <Empty>Одоогоор туслах оюутан бүртгүүлээгүй байна.</Empty>}
+      {data?.helpers.length === 0 && <Empty icon={Users} title="Туслагч алга">Энэ хичээлийг мэддэг бол туслагчаар нэмэгдээрэй. Шинэ асуулт танд мэдэгдлээр ирнэ.</Empty>}
       <ul className="helper-list">
         {data?.helpers.map((h, i) => (
-          <li key={h.id} className="card helper">
-            <span className="rank">{i + 1}</span>
-            <Avatar name={h.name} size={40} />
+          <li key={h.id} className="helper">
+            <span className={`rank ${i < 3 && h.acceptedInSubject > 0 ? 'top' : ''}`}>{i + 1}</span>
+            <Avatar name={h.name} size={34} />
             <div className="grow">
               <Link to={`/users/${h.id}`} className="strong">{h.name}</Link>
               <div className="muted small">{[h.faculty, h.year && `${h.year}-р курс`].filter(Boolean).join(' · ')}</div>
@@ -141,7 +167,7 @@ function Helpers({ subjectId }) {
               <span><strong>{h.acceptedInSubject}</strong> тусалсан</span>
               <span className="muted small">{h.reputation} оноо</span>
             </div>
-            {h.id !== user.id && <Link to={`/messages/${h.id}`} className="btn btn-ghost btn-sm">Мессеж</Link>}
+            {h.id !== user.id && <Link to={`/messages/${h.id}`} className="btn btn-secondary btn-sm">Мессеж</Link>}
           </li>
         ))}
       </ul>

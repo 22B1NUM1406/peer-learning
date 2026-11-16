@@ -18,7 +18,7 @@ import NotFoundPage from './pages/NotFoundPage.jsx';
 // Энэ нь зөвхөн тав тухтай байдлын төлөө: жинхэнэ хамгаалалт серверийн requireAuth-д.
 function Protected({ children, admin = false }) {
   const { user, loading } = useAuth();
-  if (loading) return <p className="muted center pad">Ачаалж байна…</p>;
+  if (loading) return <div className="boot" role="status" aria-label="Ачаалж байна"><span className="boot-mark" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (admin && user.role !== 'admin') return <Navigate to="/" replace />;
   return children;

@@ -1,28 +1,29 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CircleHelp, Flame, Plus, Search, Sparkles } from 'lucide-react';
+import { CircleHelp, Flame, Library, Plus, SearchX, Sparkles, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
-import { subjectLabel, useApi, useDebounced, useSchools, useSubjects } from '../lib/hooks.js';
+import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import QuestionCard from '../components/QuestionCard.jsx';
 import CommunitySidebar from '../components/CommunitySidebar.jsx';
 import { Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
 
 const SORTS = [['new', 'Шинэ', Sparkles], ['unanswered', 'Хариултгүй', CircleHelp], ['popular', 'Түгээмэл', Flame]];
+const TITLES = { new: 'Асуултууд', unanswered: 'Хариулт хүлээж буй асуултууд', popular: 'Түгээмэл асуултууд' };
 
-// P2: Нүүр — угтах хэсэг, асуултын жагсаалт, хайлт, хичээлээр шүүх, эрэмбэ (FR-07, FR-13)
-// ба баруун талын нийгэмлэгийн самбар.
+// P2: Нүүр — асуултын жагсаалт, хайлт (дээд мөрөөс), хичээлээр шүүх, эрэмбэ (FR-07, FR-13)
+// ба баруун талын нийгэмлэгийн самбар (FR-31).
 export default function HomePage() {
   const { user } = useAuth();
   const subjects = useSubjects();
   const schools = useSchools();
   const { data: stats } = useApi('/stats/community');
+  const me = useApi(`/users/${user.id}`);
   const [params, setParams] = useSearchParams();
   const subject = params.get('subject') ?? '';
   const school = params.get('school') ?? '';
   const sort = params.get('sort') ?? 'new';
-  const [text, setText] = useState(params.get('q') ?? '');
-  const q = useDebounced(text.trim(), 350);
+  const q = (params.get('q') ?? '').trim();
 
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ page: 1, total: 0, pageSize: 20 });
@@ -38,8 +39,6 @@ export default function HomePage() {
       return next;
     }, { replace: true });
   };
-
-  useEffect(() => { update({ q }); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async (page) => {
     setLoading(true);
@@ -59,44 +58,24 @@ export default function HomePage() {
 
   // Сургууль сонгосон бол хичээлийн жагсаалтыг тэр сургуулийнхаар хязгаарлана
   const subjectOptions = school ? subjects.filter((s) => String(s.schoolId) === school) : subjects;
-
   const hasMore = items.length < meta.total;
   const firstName = user.name.split(/\s+/)[0];
-  const totals = stats?.totals;
+  const filtered = q || subject || school;
+  const noHelpSubjects = me.data && me.data.user.helpSubjects.length === 0;
 
   return (
-    <div className="with-sidebar">
-      <div>
-        <section className="hero" aria-labelledby="hero-title">
-          <h1 id="hero-title">Сайн уу, {firstName}!</h1>
-          <p>Ойлгохгүй байгаа зүйлээ асуу, мэддэг зүйлээ тайлбарлаж бусдад туслаарай.</p>
-          <div className="hero-search">
-            <label className="search-box">
-              <Search size={19} />
-              <input
-                type="search" placeholder="Асуулт хайх: түлхүүр үг, сэдэв…" aria-label="Хайх"
-                value={text} onChange={(e) => setText(e.target.value)}
-              />
-            </label>
-            <Link to="/questions/new" className="btn btn-light"><Plus size={18} />Асуулт асуух</Link>
+    <div className="with-rail">
+      <div className="main-pane">
+        <header className="page-head home-head">
+          <div className="page-head-text">
+            <p className="greeting">Сайн уу, {firstName}!</p>
+            <h1>{TITLES[sort]}</h1>
           </div>
-          {totals && (
-            <div className="hero-stats" aria-label="Системийн нийт тоо">
-              <span><strong>{totals.questions}</strong>асуулт</span>
-              <span><strong>{totals.answers}</strong>хариулт</span>
-              <span><strong>{totals.acceptedQuestions}</strong>тусалсан хариулттай асуулт</span>
-              <span><strong>{totals.students}</strong>оюутан</span>
-            </div>
-          )}
-        </section>
+          <Link to="/questions/new" className="btn btn-primary hide-desktop"><Plus size={16} />Асуух</Link>
+        </header>
 
         <div className="list-toolbar">
-          <Tabs
-            variant="segmented"
-            tabs={SORTS}
-            value={sort}
-            onChange={(v) => update({ sort: v === 'new' ? '' : v })}
-          />
+          <Tabs variant="segmented" tabs={SORTS} value={sort} onChange={(v) => update({ sort: v === 'new' ? '' : v })} />
           <div className="filter-selects">
             <select aria-label="Бүрэлдэхүүн сургууль" value={school} onChange={(e) => update({ school: e.target.value, subject: '' })}>
               <option value="">Бүх сургууль</option>
@@ -108,27 +87,58 @@ export default function HomePage() {
             </select>
           </div>
         </div>
-        {q && !loading && <p className="result-note">“{q}” — {meta.total} асуулт олдлоо</p>}
 
-        <ErrorText error={error} />
-        {!loading && items.length === 0 && !error && (
-          <Empty>
-            {q ? <>“{q}” гэсэн асуулт олдсонгүй. </> : sort === 'unanswered' ? 'Хариултгүй асуулт алга. ' : 'Одоогоор асуулт алга. '}
-            <Link to="/questions/new">Шинэ асуулт асуух</Link>
-          </Empty>
+        {filtered && !loading && (
+          <div className="result-note">
+            <span>
+              {q ? <>“{q}” гэсэн {meta.total} асуулт олдлоо</> : <>Шүүлтүүрт {meta.total} асуулт тохирлоо</>}
+            </span>
+            <button className="link-btn" onClick={() => update({ q: '', subject: '', school: '' })}><X size={14} />Цэвэрлэх</button>
+          </div>
         )}
 
-        <ul className="q-list">
-          {items.map((item) => <QuestionCard key={item.id} q={item} />)}
-        </ul>
+        <ErrorText error={error} onRetry={() => load(1)} />
 
-        {loading && <Loading />}
-        {hasMore && !loading && (
-          <button className="btn btn-ghost full" onClick={() => load(meta.page + 1)}>Цааш үзэх</button>
+        {loading && items.length === 0 ? <Loading rows={5} /> : (
+          !error && items.length === 0 ? (
+            q ? (
+              <Empty icon={SearchX} title={`“${q}” гэсэн асуулт олдсонгүй`}
+                action={<Link to="/questions/new" className="btn btn-primary btn-sm"><Plus size={15} />Энэ асуултыг асуух</Link>}>
+                Өөр түлхүүр үгээр хайх эсвэл үгийн эхийг л бичиж үзээрэй.
+              </Empty>
+            ) : sort === 'unanswered' ? (
+              <Empty icon={CircleHelp} title="Хариулт хүлээж буй асуулт алга">Бүх асуулт хариулттай байна.</Empty>
+            ) : (
+              <Empty title="Одоогоор асуулт алга"
+                action={<Link to="/questions/new" className="btn btn-primary btn-sm"><Plus size={15} />Анхны асуултыг асуух</Link>}>
+                Ойлгохгүй байгаа зүйлээ асуугаарай. Тухайн хичээлийн туслагчдад мэдэгдэл очно.
+              </Empty>
+            )
+          ) : (
+            <ul className="q-list">
+              {items.map((item) => <QuestionCard key={item.id} q={item} />)}
+            </ul>
+          )
+        )}
+
+        {hasMore && (
+          <button className="btn btn-secondary full load-more" onClick={() => load(meta.page + 1)} disabled={loading}>
+            {loading ? 'Ачаалж байна…' : `Цааш үзэх (${meta.total - items.length})`}
+          </button>
         )}
       </div>
 
-      <CommunitySidebar stats={stats} />
+      <div className="rail">
+        {noHelpSubjects && (
+          <section className="rail-card onboarding">
+            <span className="onb-icon"><Library size={18} /></span>
+            <h3>Мэддэг хичээлээрээ бусдад туслаарай</h3>
+            <p>Туслах хичээлээ сонговол тэр хичээлийн шинэ асуулт танд мэдэгдлээр ирж, асуугчид таныг туслагчаар санал болгоно.</p>
+            <Link to={`/users/${user.id}?edit=1`} className="btn btn-secondary btn-sm">Туслах хичээл сонгох</Link>
+          </section>
+        )}
+        <CommunitySidebar stats={stats} />
+      </div>
     </div>
   );
 }

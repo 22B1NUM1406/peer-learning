@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { BookOpen, FolderOpen, Plus } from 'lucide-react';
 import { subjectLabel, useApi, useSchools } from '../lib/hooks.js';
-import { Empty, ErrorText, Loading } from '../components/ui.jsx';
+import { Empty, ErrorText, Loading, PageHeader } from '../components/ui.jsx';
 
 // Хичээлүүдийн жагсаалт (дээд цэсний "Хичээлүүд", "Материал").
 // FR-26: бүрэлдэхүүн сургуулиар бүлэглэж, сургууль ба тэнхимээр шүүнэ.
@@ -36,19 +36,15 @@ export default function SubjectsPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>{resources ? 'Материал' : 'Хичээлүүд'}</h1>
-          <p className="muted no-top">
-            {resources
-              ? 'Материалыг хичээлээр нь хадгалдаг. Хичээлээ сонгож лекц, бие даалтын материалыг үзээрэй.'
-              : 'Хичээлээ сонгож асуулт, материал, туслах боломжтой оюутнуудыг үзээрэй.'}
-          </p>
-        </div>
-        {resources
-          ? <Link to="/resources/new" className="btn btn-primary"><Plus size={17} />Материал хуваалцах</Link>
-          : <Link to="/questions/new" className="btn btn-primary"><Plus size={17} />Асуулт асуух</Link>}
-      </div>
+      <PageHeader
+        title={resources ? 'Материал' : 'Хичээлүүд'}
+        sub={resources
+          ? 'Материалыг хичээлээр нь хадгалдаг. Хичээлээ сонгож лекц, бие даалтын материалыг үзээрэй.'
+          : 'Хичээлээ сонгож асуулт, материал, туслах боломжтой оюутнуудыг үзээрэй.'}
+        actions={resources
+          ? <Link to="/resources/new" className="btn btn-primary"><Plus size={16} />Материал хуваалцах</Link>
+          : <Link to="/questions/new" className="btn btn-primary"><Plus size={16} />Асуулт асуух</Link>}
+      />
 
       <div className="filter-row">
         <select aria-label="Бүрэлдэхүүн сургууль" value={school} onChange={(e) => setFilter({ school: e.target.value, department: '' })}>
@@ -63,24 +59,26 @@ export default function SubjectsPage() {
         )}
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && <Loading rows={4} />}
       <ErrorText error={error} />
-      {data && subjects.length === 0 && <Empty>Энэ шүүлтүүрт тохирох хичээл алга.</Empty>}
+      {data && subjects.length === 0 && (
+        <Empty title="Тохирох хичээл алга" action={<Link to="/questions/new" className="btn btn-secondary btn-sm">Асуулт асуухдаа шинэ хичээл нэмэх</Link>}>
+          Энэ сургууль, тэнхимд хичээл бүртгэгдээгүй байна.
+        </Empty>
+      )}
       {groups.map((g) => (
         <section key={g.key} className="school-group">
-          <h2>{g.title}<span className="school-full">{g.full}</span></h2>
+          <h2>{g.title}<span className="school-full">{g.full}</span><span className="school-count">{g.items.length}</span></h2>
           <ul className="subject-grid">
             {g.items.map((s) => (
               <li key={s.id}>
-                <Link to={resources ? `/subjects/${s.id}?tab=resources` : `/subjects/${s.id}`} className="card subject-card">
-                  <span className="subject-icon">{resources ? <FolderOpen size={20} /> : <BookOpen size={20} />}</span>
-                  <span className="grow">
-                    {s.code && <span className="subject-code block">{s.code}</span>}
-                    <span className="strong">{s.name}</span>
-                    <span className="muted small block">
-                      {[s.departmentName, `${s.questionCount} асуулт`].filter(Boolean).join(' · ')}
-                    </span>
+                <Link to={resources ? `/subjects/${s.id}?tab=resources` : `/subjects/${s.id}`} className="subject-card">
+                  <span className="subject-icon">{resources ? <FolderOpen size={17} /> : <BookOpen size={17} />}</span>
+                  <span className="grow subject-card-text">
+                    <span className="subject-name">{s.code && <span className="subject-code">{s.code}</span>}{s.name}</span>
+                    {s.departmentName && <span className="subject-dept">{s.departmentName}</span>}
                   </span>
+                  <span className={`subject-qcount ${s.questionCount ? '' : 'zero'}`} title="Асуултын тоо">{s.questionCount}</span>
                 </Link>
               </li>
             ))}

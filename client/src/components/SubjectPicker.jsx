@@ -21,7 +21,7 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
 
   if (selected) {
     return (
-      <div className="picker-selected card">
+      <div className="picker-selected">
         <span className="subject-icon sm"><BookOpen size={15} /></span>
         <span className="grow">
           <span className="strong block">{subjectLabel(selected)}</span>
@@ -118,7 +118,7 @@ function NewSubject({ schools, initial, onCancel, onPick, onCreated }) {
   };
 
   return (
-    <div className="card pad new-subject" role="group" aria-label="Шинэ хичээл нэмэх">
+    <div className="new-subject" role="group" aria-label="Шинэ хичээл нэмэх">
       <div className="row-between">
         <strong>Шинэ хичээл нэмэх</strong>
         <button type="button" className="link-btn muted" onClick={onCancel}><X size={15} />Болих</button>

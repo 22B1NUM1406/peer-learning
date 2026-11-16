@@ -6,7 +6,8 @@ import SubjectPicker from '../components/SubjectPicker.jsx';
 import SuggestedHelpers from '../components/SuggestedHelpers.jsx';
 import { EyeOff, User } from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
-import { ErrorText, Loading } from '../components/ui.jsx';
+import { ErrorText, Loading, PageHeader } from '../components/ui.jsx';
+import { useFeedback } from '../lib/feedback.jsx';
 
 // P3: Асуулт асуух ба засах (FR-05, FR-06, FR-20, FR-25)
 export default function AskPage() {
@@ -15,6 +16,7 @@ export default function AskPage() {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useFeedback();
   const { subjects: loadedSubjects, loaded: subjectsLoaded } = useSubjectsState();
   const [added, setAdded] = useState([]);   // энэ хуудсанд оюутны шинээр нэмсэн хичээл (FR-27)
   const subjects = [...loadedSubjects, ...added.filter((a) => !loadedSubjects.some((s) => s.id === a.id))];
@@ -54,9 +56,11 @@ export default function AskPage() {
     try {
       if (editing) {
         await api(`/questions/${id}`, { method: 'PATCH', body: { title: form.title, body: form.body, subjectId: Number(form.subjectId) } });
+        toast('Асуулт хадгалагдлаа');
         navigate(`/questions/${id}`);
       } else {
         const d = await api('/questions', { method: 'POST', body: { ...form, subjectId: Number(form.subjectId) } });
+        toast('Асуулт нийтлэгдлээ');
         navigate(`/questions/${d.id}`);
       }
     } catch (err) {
@@ -65,25 +69,29 @@ export default function AskPage() {
     }
   };
 
-  if (!loaded) return error ? <ErrorText error={error} /> : <Loading />;
+  if (!loaded) return <div className="narrow">{error ? <ErrorText error={error} /> : <Loading />}</div>;
 
   return (
     <div className="narrow">
-      <h1>{editing ? 'Асуулт засах' : 'Асуулт асуух'}</h1>
-      <form onSubmit={onSubmit} className="form card pad-lg">
+      <PageHeader
+        title={editing ? 'Асуулт засах' : 'Асуулт асуух'}
+        sub={editing ? null : 'Тодорхой гарчиг, юу оролдсоноо бичвэл хариулт хурдан ирнэ.'}
+      />
+      <form onSubmit={onSubmit} className="form panel">
         <label>Гарчиг
           <input value={form.title} onChange={set('title')} required minLength={5} maxLength={200}
             placeholder="Жишээ нь: Холбоост жагсаалтыг хэрхэн эргүүлэх вэ?" />
+          <small className="field-help">Асуултаа нэг өгүүлбэрээр. {form.title.length}/200</small>
         </label>
 
         {similar.length > 0 && (
           <div className="similar" aria-live="polite">
-            <strong>Ижил төстэй асуулт байна. Эхлээд эдгээрийг шалгаарай:</strong>
+            <strong>Ижил төстэй асуулт байна. Хариулт нь аль хэдийн байж магадгүй:</strong>
             <ul>
               {similar.map((s) => (
                 <li key={s.id}>
                   <Link to={`/questions/${s.id}`} target="_blank">{s.title}</Link>
-                  <span className="muted small"> · {s.subjectName}{s.hasAccepted ? ' · ✓ тусалсан хариулттай' : ''}</span>
+                  <span className="similar-meta">{s.subjectName}{s.hasAccepted && <span className="mini-count accepted">тусалсан хариулттай</span>}</span>
                 </li>
               ))}
             </ul>
@@ -129,9 +137,9 @@ export default function AskPage() {
         )}
 
         <ErrorText error={error} />
-        <div className="row-end">
-          <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>Болих</button>
-          <button className="btn btn-primary" disabled={busy}>{editing ? 'Хадгалах' : 'Нийтлэх'}</button>
+        <div className="row-end form-foot">
+          <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>Болих</button>
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Хадгалж байна…' : editing ? 'Хадгалах' : 'Нийтлэх'}</button>
         </div>
       </form>
     </div>

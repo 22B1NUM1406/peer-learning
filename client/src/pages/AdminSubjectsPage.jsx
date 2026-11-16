@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
-import { ErrorText, Loading, Tabs } from '../components/ui.jsx';
+import { ErrorText, Loading, PageHeader, Tabs } from '../components/ui.jsx';
+import { useFeedback } from '../lib/feedback.jsx';
 
 // P11: Админ — хичээл (FR-17) ба бүрэлдэхүүн сургууль, тэнхим (FR-26).
 // Оюутны нэмсэн хичээлийг (FR-27) хэн нэмснээр нь тэмдэглэж, засах эсвэл идэвхгүй болгоно.
@@ -12,7 +13,7 @@ export default function AdminSubjectsPage() {
   const schools = useApi('/schools');
   return (
     <>
-      <h1>Хичээл удирдах</h1>
+      <PageHeader title="Хичээл удирдах" sub="Хичээл, бүрэлдэхүүн сургууль, тэнхимийг нэмж засна. Оюутны нэмсэн хичээлийг энд шалгана." />
       <Tabs tabs={[['subjects', 'Хичээлүүд'], ['schools', 'Сургууль, тэнхим']]} value={tab} onChange={setTab} />
       {tab === 'subjects'
         ? <SubjectsAdmin schools={schools.data?.schools ?? []} />
@@ -48,9 +49,10 @@ function SubjectsAdmin({ schools }) {
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState(null);
 
+  const { toast } = useFeedback();
   const run = async (fn) => {
     setError(null);
-    try { await fn(); await reload(); } catch (err) { setError(err); }
+    try { await fn(); await reload(); toast('Хадгалагдлаа'); } catch (err) { setError(err); }
   };
   const add = (e) => {
     e.preventDefault();
@@ -65,7 +67,7 @@ function SubjectsAdmin({ schools }) {
 
   return (
     <>
-      <form onSubmit={add} className="card pad admin-subject-form">
+      <form onSubmit={add} className="panel admin-subject-form">
         <input aria-label="Хичээлийн нэр" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Шинэ хичээлийн нэр" required minLength={2} maxLength={150} />
         <input aria-label="Код" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="Код (заавал биш)" maxLength={20} />
         <Placement schools={schools} value={form} onChange={(c) => setForm({ ...form, ...c })} />
@@ -73,7 +75,7 @@ function SubjectsAdmin({ schools }) {
       </form>
       <ErrorText error={error} />
       {loading && !data ? <Loading /> : (
-        <div className="card table-wrap">
+        <div className="table-wrap panel flush">
           <table className="table">
             <thead><tr><th>Код</th><th>Хичээл</th><th>Сургууль · тэнхим</th><th aria-label="Үйлдэл" /></tr></thead>
             <tbody>
@@ -121,9 +123,10 @@ function SchoolsAdmin({ data, reload }) {
   const [rename, setRename] = useState(null);    // { kind, id, name, shortName? }
   const [error, setError] = useState(null);
 
+  const { toast } = useFeedback();
   const run = async (fn) => {
     setError(null);
-    try { await fn(); await reload(); } catch (err) { setError(err); }
+    try { await fn(); await reload(); toast('Хадгалагдлаа'); } catch (err) { setError(err); }
   };
   const addSchool = (e) => {
     e.preventDefault();
@@ -145,7 +148,7 @@ function SchoolsAdmin({ data, reload }) {
   if (!data) return <Loading />;
   return (
     <>
-      <form onSubmit={addSchool} className="card pad admin-subject-form">
+      <form onSubmit={addSchool} className="panel admin-subject-form">
         <input aria-label="Сургуулийн нэр" value={school.name} onChange={(e) => setSchool({ ...school, name: e.target.value })} placeholder="Бүрэлдэхүүн сургуулийн нэр" required minLength={2} maxLength={150} />
         <input aria-label="Товчлол" value={school.shortName} onChange={(e) => setSchool({ ...school, shortName: e.target.value })} placeholder="Товчлол (МТЭС)" required minLength={2} maxLength={20} />
         <button className="btn btn-primary"><Plus size={16} />Сургууль нэмэх</button>
@@ -153,7 +156,7 @@ function SchoolsAdmin({ data, reload }) {
       <ErrorText error={error} />
       <div className="school-admin-list">
         {data.schools.map((s) => (
-          <section key={s.id} className="card pad">
+          <section key={s.id} className="panel">
             {rename?.kind === 'school' && rename.id === s.id ? (
               <form onSubmit={saveRename} className="admin-subject-form">
                 <input aria-label="Сургуулийн нэр" value={rename.name} onChange={(e) => setRename({ ...rename, name: e.target.value })} required minLength={2} />

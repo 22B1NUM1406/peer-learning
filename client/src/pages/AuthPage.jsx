@@ -35,12 +35,20 @@ export default function AuthPage() {
 
   return (
     <div className="auth-wrap">
-      <div className="card auth-card">
-        <span className="brand-mark auth-mark" aria-hidden="true"><GraduationCap size={26} /></span>
-        <h1 className="auth-title">Харилцан суралцах систем</h1>
-        <p className="muted auth-sub">Хичээлээ бие биедээ асууж, тайлбарлаж суралцъя</p>
+      <section className="auth-intro" aria-label="Системийн тухай">
+        <span className="brand-mark auth-mark" aria-hidden="true"><GraduationCap size={22} /></span>
+        <h1 className="auth-title">Хичээлээ бие биедээ асууж, тайлбарлаж суралцъя</h1>
+        <ul className="auth-points">
+          <li><strong>Асуу.</strong> Ойлгохгүй байгаа зүйлээ хичээлээр нь асуу, хүсвэл нэрээ нууцал.</li>
+          <li><strong>Тусал.</strong> Мэддэг хичээлээ сонгоход тэр хичээлийн шинэ асуулт танд ирнэ.</li>
+          <li><strong>Олоорой.</strong> Өмнө нь асуусан асуулт, “тусалсан” гэж тэмдэглэгдсэн хариултаас хай.</li>
+        </ul>
+        <p className="auth-foot">МУИС-ийн оюутнуудад зориулсан харилцан суралцах систем</p>
+      </section>
 
-        <div className="tabs" role="tablist">
+      <div className="auth-card">
+        <h2 className="auth-form-title">{mode === 'login' ? 'Нэвтрэх' : 'Бүртгэл үүсгэх'}</h2>
+        <div className="segmented auth-tabs" role="tablist">
           <button role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'tab active' : 'tab'} onClick={() => switchTo('login')}>Нэвтрэх</button>
           <button role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'tab active' : 'tab'} onClick={() => switchTo('register')}>Бүртгүүлэх</button>
         </div>
@@ -60,12 +68,12 @@ export default function AuthPage() {
               minLength={mode === 'register' ? 8 : undefined} maxLength={128}
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             />
-            {mode === 'register' && <small className="muted">Хамгийн багадаа 8 тэмдэгт</small>}
+            {mode === 'register' && <small className="field-help">Хамгийн багадаа 8 тэмдэгт</small>}
           </label>
 
           {error && <p className="error" role="alert">{error}</p>}
 
-          <button className="btn btn-primary" disabled={busy}>
+          <button className="btn btn-primary btn-lg" disabled={busy}>
             {busy ? 'Түр хүлээнэ үү…' : mode === 'login' ? 'Нэвтрэх' : 'Бүртгүүлэх'}
           </button>
         </form>

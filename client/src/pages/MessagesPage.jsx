@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, MessageCircle, Send } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { connectSocket } from '../lib/socket.js';
@@ -28,9 +29,9 @@ export default function MessagesPage() {
 
   return (
     <div className={`messages ${userId ? 'has-thread' : ''}`}>
-      <aside className="conv-list card">
-        <h2 className="section-title no-top pad-x">Мессеж</h2>
-        {conversations.length === 0 && <p className="muted small pad-x">Яриа алга. Туслагч оюутны профайлаас мессеж бичиж эхлээрэй.</p>}
+      <aside className="conv-list">
+        <h1 className="conv-title">Мессеж</h1>
+        {conversations.length === 0 && <p className="conv-empty">Яриа алга. Хичээлийн “Туслах боломжтой оюутнууд” табаас туслагчид бичиж эхлээрэй.</p>}
         <ul>
           {conversations.map((c) => (
             <li key={c.userId}>
@@ -46,9 +47,11 @@ export default function MessagesPage() {
           ))}
         </ul>
       </aside>
-      <section className="thread card">
-        {userId && Number(userId) === user.id && <Empty>Өөртөө мессеж бичих боломжгүй</Empty>}
-        {userId && Number(userId) !== user.id ? <Thread key={userId} otherId={Number(userId)} me={user} onSent={loadConversations} /> : !userId && <Empty>Яриа сонгоно уу</Empty>}
+      <section className="thread">
+        {userId && Number(userId) === user.id && <Empty title="Өөртөө мессеж бичих боломжгүй" />}
+        {userId && Number(userId) !== user.id
+          ? <Thread key={userId} otherId={Number(userId)} me={user} onSent={loadConversations} />
+          : !userId && <Empty icon={MessageCircle} title="Яриа сонгоно уу">Зүүн талын жагсаалтаас яриа сонгох эсвэл оюутны профайлаас “Мессеж бичих”-ийг дарна уу.</Empty>}
       </section>
     </div>
   );
@@ -114,12 +117,12 @@ function Thread({ otherId, me, onSent }) {
   return (
     <>
       <header className="thread-head">
-        <Link to="/messages" className="link-btn show-mobile">←</Link>
+        <Link to="/messages" className="icon-btn show-mobile" aria-label="Яриануудын жагсаалт"><ArrowLeft size={18} /></Link>
         {other && <Link to={`/users/${other.id}`} className="author-link"><Avatar name={other.name} size={32} /> <strong>{other.name}</strong></Link>}
       </header>
       <div className="thread-body">
         {hasOlder && <button className="link-btn small center-block" onClick={loadOlder}>Өмнөх мессежүүд</button>}
-        {messages.length === 0 && <p className="muted center">Анхны мессежээ бичээрэй</p>}
+        {messages.length === 0 && other && <p className="thread-start">{other.name}-тэй анхны мессежээ бичээрэй</p>}
         {messages.map((m) => (
           <div key={m.id} className={`bubble-row ${m.senderId === me.id ? 'mine' : ''}`}>
             <div className="bubble">
@@ -135,7 +138,7 @@ function Thread({ otherId, me, onSent }) {
       </div>
       <form className="thread-input" onSubmit={send}>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Мессеж бичих…" aria-label="Мессеж" />
-        <button className="btn btn-primary" disabled={!text.trim()}>Илгээх</button>
+        <button className="btn btn-primary" disabled={!text.trim()} aria-label="Илгээх"><Send size={15} /><span className="hide-mobile">Илгээх</span></button>
       </form>
       {error && <ErrorText error={error} />}
     </>
