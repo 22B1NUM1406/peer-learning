@@ -5,9 +5,10 @@ import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { timeAgo } from '../lib/format.js';
 import { Avatar, Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
-import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Pencil, X } from 'lucide-react';
+import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Pencil, Plus, X } from 'lucide-react';
 import { useFeedback } from '../lib/feedback.jsx';
 import { notifyProfileChanged } from '../components/Layout.jsx';
+import { NewSubject } from '../components/SubjectPicker.jsx';
 
 // P7: Профайл (FR-03, FR-04, FR-22, FR-24) + түвшин, тэмдэг (санал 4), хувийн статистик ба хадгалсан (санал 7)
 export default function ProfilePage() {
@@ -99,8 +100,11 @@ export default function ProfilePage() {
 }
 
 function EditProfile({ user, onSaved }) {
-  const subjects = useSubjects();
+  const loadedSubjects = useSubjects();
+  const [added, setAdded] = useState([]);   // энд шинээр нэмсэн хичээл (FR-27)
+  const subjects = [...loadedSubjects, ...added.filter((a) => !loadedSubjects.some((s) => s.id === a.id))];
   const schools = useSchools();
+  const [adding, setAdding] = useState(false);
   const { refresh } = useAuth();
   const { toast } = useFeedback();
   const [form, setForm] = useState({ name: user.name, faculty: user.faculty ?? '', year: user.year ?? '', notifyNewQuestions: user.notifyNewQuestions ?? true });
@@ -115,6 +119,12 @@ function EditProfile({ user, onSaved }) {
     .filter((s) => !f || s.name.toLowerCase().includes(f) || (s.code ?? '').toLowerCase().includes(f))
     .sort((a, b) => Number(initialIds.includes(b.id)) - Number(initialIds.includes(a.id)));
   const toggle = (sid) => setHelpIds((ids) => (ids.includes(sid) ? ids.filter((x) => x !== sid) : [...ids, sid]));
+  // Нэмсэн эсвэл ижил төстэйгээс сонгосон хичээлийг шууд туслах хичээлд оруулж, жагсаалтад харуулна
+  const choose = (subject) => {
+    setHelpIds((ids) => (ids.includes(subject.id) ? ids : [...ids, subject.id]));
+    setFilter(subject.name);
+    setAdding(false);
+  };
 
   const save = async (e) => {
     e.preventDefault();
@@ -160,6 +170,19 @@ function EditProfile({ user, onSaved }) {
           ))}
           {shown.length === 0 && <span className="muted small">Тохирох хичээл алга</span>}
         </div>
+        {adding ? (
+          <NewSubject
+            schools={schools}
+            initial={{ name: filter.trim(), schoolId: '' }}
+            onCancel={() => setAdding(false)}
+            onPick={choose}
+            onCreated={(s) => { setAdded((list) => [...list, s]); choose(s); toast(`“${s.name}” хичээл нэмэгдэж, туслах хичээлд сонгогдлоо`); }}
+          />
+        ) : (
+          <button type="button" className="link-btn picker-add" onClick={() => setAdding(true)}>
+            <Plus size={15} />{filter.trim() && shown.length === 0 ? `“${filter.trim()}” хичээлийг нэмэх` : 'Жагсаалтад байхгүй бол шинэ хичээл нэмэх'}
+          </button>
+        )}
       </fieldset>
       <label className="check">
         <input type="checkbox" checked={form.notifyNewQuestions} onChange={(e) => setForm({ ...form, notifyNewQuestions: e.target.checked })} />

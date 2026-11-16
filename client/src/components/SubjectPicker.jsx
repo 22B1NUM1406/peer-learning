@@ -83,8 +83,8 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
   );
 }
 
-// Шинэ хичээл нэмэх хэсэг. Асуултын маягт дотор байрладаг тул тусдаа <form> биш (HTML-д давхар form хориотой).
-function NewSubject({ schools, initial, onCancel, onPick, onCreated }) {
+// Шинэ хичээл нэмэх хэсэг. Асуулт, профайлын маягт дотор байрладаг тул тусдаа <form> биш (HTML-д давхар form хориотой).
+export function NewSubject({ schools, initial, onCancel, onPick, onCreated }) {
   const [f, setF] = useState({ name: initial.name, code: '', schoolId: initial.schoolId, departmentId: '' });
   const [similar, setSimilar] = useState(null);   // null = шалгаагүй, [] = ижил хичээл алга
   const [busy, setBusy] = useState(false);
