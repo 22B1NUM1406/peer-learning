@@ -517,6 +517,7 @@ p.error { display: block; }
 .anon-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .anon-choice legend { grid-column: 1 / -1; }
 .anon-choice > small { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-xs); }
+.form .anon-option { flex-direction: row; font-weight: 450; color: var(--text); }
 .anon-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--r); cursor: pointer; font-size: var(--fs-sm); transition: border-color var(--ease), background var(--ease); }
 .anon-option:hover { border-color: #aeb7c3; }
 .anon-option.on { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 1px var(--brand); }
