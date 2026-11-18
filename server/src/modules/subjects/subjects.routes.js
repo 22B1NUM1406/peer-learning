@@ -6,6 +6,8 @@ import * as c from './subjects.controller.js';
 export const subjectRoutes = Router();
 subjectRoutes.get('/', requireAuth, c.list);
 subjectRoutes.get('/similar', requireAuth, c.similar);   // '/:id'-ээс өмнө байх ёстой
+subjectRoutes.get('/search', requireAuth, c.search);     // МУИС-ийн каталог
+subjectRoutes.post('/catalog/:id', requireAuth, c.adoptCatalog);
 subjectRoutes.post('/', requireAuth, c.createByStudent); // FR-27
 subjectRoutes.get('/:id', requireAuth, c.get);
 

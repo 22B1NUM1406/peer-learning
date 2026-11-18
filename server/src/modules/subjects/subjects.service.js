@@ -125,3 +125,41 @@ export async function createByStudent({ name, code, schoolId, departmentId }, us
     throw uniqueError(err);
   }
 }
+
+// ----- МУИС-ийн каталог -----
+
+// Хайлт: системд байгаа хичээл ба каталогийн хичээлийг хамт буцаана.
+// Кодын хэлбэр: зай хасаж том үсгээр (icsi 405 → ICSI405), каталогийн кодыг ч ингэж хадгалсан.
+export async function search(q, schoolId = null) {
+  const code = q.replace(/\s+/g, '').toUpperCase();
+  const words = q.toLowerCase().split(/[\s,.;:()]+/).filter(Boolean).slice(0, 6);
+  const [subjects, catalog] = await Promise.all([repo.searchSubjects(q, code, words, schoolId), repo.searchCatalog(q, code, words, schoolId)]);
+  return { subjects, catalog };
+}
+
+// Каталогоос хичээл сонгоход системд хичээл үүсгэнэ (эсвэл ижил нэртэйг нь буцаана).
+// Хичээл, тэнхим, код нь албан ёсны тул ижил хичээлийг шалгах, өдрийн хязгаар шаардлагагүй.
+export async function adoptCatalog(catalogId, user) {
+  const course = await repo.findCatalogCourse(catalogId);
+  if (!course) throw notFound('Каталогт ийм хичээл алга');
+  const existing = await repo.findSubjectByName(course.name);
+  if (existing) {
+    if (!existing.isActive) throw conflict(`“${existing.name}” хичээлийг админ идэвхгүй болгосон байна`);
+    return { subject: existing, created: false };
+  }
+  const code = course.code && !(await repo.codeTaken(course.code)) ? course.code : null;
+  try {
+    const subject = await repo.createSubject({
+      name: course.name, code, schoolId: course.schoolId, departmentId: course.departmentId,
+      createdBy: user.id, catalogId: course.id,
+    });
+    return { subject, created: true };
+  } catch (err) {
+    // Хоёр оюутан зэрэг сонговол нэг нь үүсгэнэ, нөгөө нь түүнийг авна
+    if (err.code === '23505') {
+      const again = await repo.findSubjectByName(course.name);
+      if (again) return { subject: again, created: false };
+    }
+    throw uniqueError(err);
+  }
+}

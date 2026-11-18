@@ -43,6 +43,18 @@ export async function similar(req, res) {
   });
 }
 
+// GET /api/subjects/search?q=&school= — системийн хичээл ба МУИС-ийн каталогоос хайна
+export async function search(req, res) {
+  const q = requireString(squash(req.query.q ?? ''), 'Хайлт', { min: 2, max: 100 });
+  res.json(await service.search(q, optionalId(req.query.school, 'Сургууль') ?? null));
+}
+
+// POST /api/subjects/catalog/:id — каталогийн хичээлийг сонгоно (байхгүй бол үүснэ)
+export async function adoptCatalog(req, res) {
+  const { subject, created } = await service.adoptCatalog(requireId(req.params.id), req.user);
+  res.status(created ? 201 : 200).json({ subject, created });
+}
+
 // POST /api/subjects — оюутан шинэ хичээл нэмнэ (FR-27)
 export async function createByStudent(req, res) {
   res.status(201).json({
