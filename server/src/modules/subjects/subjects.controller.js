@@ -49,6 +49,16 @@ export async function search(req, res) {
   res.json(await service.search(q, optionalId(req.query.school, 'Сургууль') ?? null));
 }
 
+// GET /api/subjects/catalog?school=&department=&q=&page= — МУИС-ийн хичээлийн жагсаалтыг үзэх
+export async function listCatalog(req, res) {
+  const q = squash(req.query.q ?? '');
+  const schoolId = optionalId(req.query.school, 'Сургууль') ?? null;
+  const departmentId = optionalId(req.query.department, 'Тэнхим') ?? null;
+  if (!schoolId && !departmentId && q.length < 2) throw badRequest('Сургууль сонгох эсвэл хайх үгээ бичнэ үү');
+  const page = Math.max(1, Math.min(500, Number.parseInt(req.query.page, 10) || 1));
+  res.json(await service.listCatalog({ schoolId, departmentId, q: q.length >= 2 ? q.slice(0, 100) : '', page }));
+}
+
 // POST /api/subjects/catalog/:id — каталогийн хичээлийг сонгоно (байхгүй бол үүснэ)
 export async function adoptCatalog(req, res) {
   const { subject, created } = await service.adoptCatalog(requireId(req.params.id), req.user);

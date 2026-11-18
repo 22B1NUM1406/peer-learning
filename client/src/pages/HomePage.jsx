@@ -7,7 +7,7 @@ import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import QuestionCard from '../components/QuestionCard.jsx';
 import CommunitySidebar from '../components/CommunitySidebar.jsx';
 import HelpQueue from '../components/HelpQueue.jsx';
-import { Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
+import { Empty, ErrorText, Loading, Tabs, SchoolOptions } from '../components/ui.jsx';
 
 const SORTS = [['new', 'Шинэ', Sparkles], ['unanswered', 'Хариултгүй', CircleHelp], ['popular', 'Түгээмэл', Flame]];
 const TITLES = { new: 'Асуултууд', unanswered: 'Хариулт хүлээж буй асуултууд', popular: 'Түгээмэл асуултууд' };
@@ -80,7 +80,7 @@ export default function HomePage() {
           <div className="filter-selects">
             <select aria-label="Бүрэлдэхүүн сургууль" value={school} onChange={(e) => update({ school: e.target.value, subject: '' })}>
               <option value="">Бүх сургууль</option>
-              {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName}</option>)}
+              <SchoolOptions schools={schools} />
             </select>
             <select aria-label="Хичээл" value={subject} onChange={(e) => update({ subject: e.target.value })}>
               <option value="">Бүх хичээл</option>

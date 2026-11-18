@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useApi } from '../lib/hooks.js';
-import { ErrorText, Loading, PageHeader, Tabs } from '../components/ui.jsx';
+import { ErrorText, Loading, PageHeader, Tabs, SchoolOptions } from '../components/ui.jsx';
 import { useFeedback } from '../lib/feedback.jsx';
 
 // P11: Админ — хичээл (FR-17) ба бүрэлдэхүүн сургууль, тэнхим (FR-26).
@@ -31,7 +31,7 @@ function Placement({ schools, value, onChange }) {
     <>
       <select aria-label="Сургууль" value={value.schoolId ?? ''} onChange={(e) => onChange({ schoolId: e.target.value, departmentId: '' })}>
         <option value="">Сургууль —</option>
-        {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName}</option>)}
+        <SchoolOptions schools={schools} />
       </select>
       <select aria-label="Тэнхим" value={value.departmentId ?? ''} onChange={(e) => onChange({ departmentId: e.target.value })} disabled={!depts.length}>
         <option value="">Тэнхим —</option>

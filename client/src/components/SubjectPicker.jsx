@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Check, Library, Plus, Search, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { subjectLabel, useDebounced } from '../lib/hooks.js';
-import { ErrorText } from './ui.jsx';
+import { ErrorText, SchoolOptions } from './ui.jsx';
 
 // МУИС-ийн хичээлийн каталогоос хайх (SiSi-ээс импортолсон). Системд хараахан байхгүй хичээлүүдийг буцаана;
 // сонгоход adoptCatalog() хичээлийг үүсгэнэ (байвал тэрийг нь буцаана).
@@ -23,7 +23,8 @@ export function useCatalogSearch(text, school = '') {
 
 export const adoptCatalog = (id) => api(`/subjects/catalog/${id}`, { method: 'POST' }).then((d) => d.subject);
 
-const courseMeta = (c) => [c.schoolShortName, c.departmentName, c.credit != null && `${c.credit} кредит`].filter(Boolean).join(' · ');
+export const courseMeta = (c) => [c.schoolShortName, c.departmentName || c.branch, c.level, c.credit != null && `${c.credit} кредит`]
+  .filter(Boolean).join(' · ');
 
 // Каталогийн нэг мөр: код, нэр, сургууль, тэнхим, кредит
 export function CatalogItem({ course, onPick, busy, icon = <Plus size={16} className="picker-check" /> }) {
@@ -104,7 +105,7 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
         </label>
         <select aria-label="Бүрэлдэхүүн сургууль" value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
           <option value="">Бүх сургууль</option>
-          {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName}</option>)}
+          <SchoolOptions schools={schools} />
         </select>
       </div>
       <ul className="picker-list" role="listbox" aria-label="Хичээл">
@@ -190,7 +191,7 @@ export function NewSubject({ schools, initial, onCancel, onPick, onCreated }) {
         <label>Бүрэлдэхүүн сургууль
           <select value={f.schoolId} onChange={(e) => set({ schoolId: e.target.value, departmentId: '' })}>
             <option value="">Сонгоно уу</option>
-            {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName} — {s.name}</option>)}
+            <SchoolOptions schools={schools} full />
           </select>
         </label>
         <label><span>Тэнхим <span className="muted small">(заавал биш)</span></span>

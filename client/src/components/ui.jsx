@@ -119,3 +119,16 @@ export function Tabs({ tabs, value, onChange, variant }) {
     </div>
   );
 }
+
+// Сургуулийн сонголтууд: бүрэлдэхүүн ба салбар сургуулийг бүлэглэнэ (<select> дотор)
+export function SchoolOptions({ schools, valueKey = 'id', full = false }) {
+  const groups = [];
+  for (const s of schools) {
+    const kind = s.kind || 'Сургууль';
+    if (!groups.length || groups.at(-1).kind !== kind) groups.push({ kind, items: [] });
+    groups.at(-1).items.push(s);
+  }
+  const option = (s) => <option key={s.id} value={s[valueKey]}>{full ? `${s.shortName} — ${s.name}` : s.shortName}</option>;
+  if (groups.length < 2) return schools.map(option);
+  return groups.map((g) => <optgroup key={g.kind} label={g.kind}>{g.items.map(option)}</optgroup>);
+}

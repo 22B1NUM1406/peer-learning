@@ -4,7 +4,7 @@ import { api } from '../lib/api.js';
 import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { timeAgo } from '../lib/format.js';
-import { Avatar, Empty, ErrorText, Loading, Tabs } from '../components/ui.jsx';
+import { Avatar, Empty, ErrorText, Loading, Tabs, SchoolOptions } from '../components/ui.jsx';
 import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Library, Pencil, Plus, X } from 'lucide-react';
 import { useFeedback } from '../lib/feedback.jsx';
 import { notifyProfileChanged } from '../components/Layout.jsx';
@@ -158,7 +158,7 @@ function EditProfile({ user, onSaved }) {
           <select value={form.faculty} onChange={(e) => setForm({ ...form, faculty: e.target.value })}>
             <option value="">—</option>
             {form.faculty && !schools.some((s) => s.shortName === form.faculty) && <option value={form.faculty}>{form.faculty}</option>}
-            {schools.map((s) => <option key={s.id} value={s.shortName}>{s.shortName} — {s.name}</option>)}
+            <SchoolOptions schools={schools} valueKey="shortName" full />
           </select>
         </label>
         <label>Курс

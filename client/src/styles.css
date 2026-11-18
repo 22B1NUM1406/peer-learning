@@ -985,3 +985,27 @@ p.error { display: block; }
   .bottomnav a.ask { color: var(--text-2); }
   .bottomnav .dot { position: absolute; top: 4px; right: calc(50% - 16px); margin: 0; }
 }
+
+/* МУИС-ийн хичээлийн жагсаалт (хичээлүүдийн хуудас) */
+.subjects-empty { margin-bottom: 8px; }
+.catalog-browser { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+.catalog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.catalog-head h2 { display: flex; align-items: center; gap: 8px; font-size: var(--fs-lg); margin: 0; }
+.catalog-head h2 svg { color: var(--brand); }
+.catalog-search { max-width: 320px; flex: 1 1 220px; }
+.catalog-total { margin-bottom: 6px; }
+.catalog-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.catalog-list li + li { border-top: 1px solid var(--line); }
+.catalog-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border: none; background: none; font: inherit; text-align: left; color: var(--text); cursor: pointer; }
+.catalog-row:hover { background: var(--gray-25); }
+.catalog-row:hover .catalog-name { color: var(--brand); }
+.catalog-row:disabled { cursor: progress; opacity: .6; }
+.catalog-row .subject-code { flex: none; min-width: 72px; }
+.catalog-name { font-weight: 580; font-size: var(--fs-sm); }
+@media (max-width: 720px) { .catalog-row .subject-code { min-width: 0; } }
+
+@media (max-width: 720px) {
+  .list-toolbar { flex-direction: column; align-items: stretch; }
+  .filter-selects { width: 100%; }
+  .filter-selects select { flex: 1 1 0; min-width: 0; max-width: none; }
+}

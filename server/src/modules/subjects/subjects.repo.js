@@ -3,12 +3,14 @@ import { query } from '../../db.js';
 // Хичээлийн каталог: хичээл, түүнийг заадаг бүрэлдэхүүн сургууль ба тэнхим.
 const SUBJECT_COLS = `s.id, s.name, s.code, s.is_active AS "isActive",
        s.school_id AS "schoolId", sc.short_name AS "schoolShortName", sc.name AS "schoolName",
-       s.department_id AS "departmentId", d.name AS "departmentName",
-       s.created_by AS "createdBy", cu.name AS "createdByName", s.catalog_id AS "catalogId"`;
+       s.department_id AS "departmentId", d.name AS "departmentName", d.branch AS "branchName",
+       s.created_by AS "createdBy", cu.name AS "createdByName", s.catalog_id AS "catalogId",
+       cc.level, cc.credit::float AS credit`;
 const SUBJECT_FROM = `subjects s
   LEFT JOIN schools sc ON sc.id = s.school_id
   LEFT JOIN departments d ON d.id = s.department_id
-  LEFT JOIN users cu ON cu.id = s.created_by`;
+  LEFT JOIN users cu ON cu.id = s.created_by
+  LEFT JOIN catalog_courses cc ON cc.id = s.catalog_id`;
 
 export async function listSubjects({ includeInactive = false, schoolId = null, departmentId = null } = {}) {
   const { rows } = await query(
@@ -60,9 +62,10 @@ export async function updateSubject(id, changes) {
 
 export async function listSchools() {
   const { rows } = await query(
-    `SELECT sc.id, sc.name, sc.short_name AS "shortName",
+    `SELECT sc.id, sc.name, sc.short_name AS "shortName", sc.kind,
             (SELECT COUNT(*)::int FROM subjects s WHERE s.school_id = sc.id AND s.is_active) AS "subjectCount",
-            COALESCE(json_agg(json_build_object('id', d.id, 'name', d.name) ORDER BY d.name)
+            (SELECT COUNT(*)::int FROM catalog_courses c WHERE c.school_id = sc.id) AS "catalogCount",
+            COALESCE(json_agg(json_build_object('id', d.id, 'name', d.name, 'branch', d.branch) ORDER BY d.branch NULLS FIRST, d.name)
                      FILTER (WHERE d.id IS NOT NULL), '[]') AS departments
        FROM schools sc LEFT JOIN departments d ON d.school_id = sc.id
       GROUP BY sc.id
@@ -171,22 +174,48 @@ export async function searchSubjects(q, code, words, schoolId = null, limit = 8)
   return rows;
 }
 
-// Каталогоос хайна. Системд ижил нэртэй хичээл (идэвхгүй ч) байвал каталогийн мөрийг харуулахгүй:
-// тэр хичээл дээрх хайлтаас аль хэдийн гарна.
+// Каталогоос хайна. Хичээл болж сонгогдсон мөрийг харуулахгүй: тэр нь системийн хичээлийн хайлтаас гарна.
 export async function searchCatalog(q, code, words, schoolId = null, limit = 12) {
   const { rows } = await query(
-    `SELECT c.id, c.code, c.name, c.credit::float AS credit,
-            c.school_id AS "schoolId", sc.short_name AS "schoolShortName", d.name AS "departmentName"
+    `SELECT c.id, c.code, c.name, c.credit::float AS credit, c.level, c.branch,
+            c.school_id AS "schoolId", sc.short_name AS "schoolShortName", sc.name AS "schoolName",
+            d.name AS "departmentName"
        FROM catalog_courses c
        LEFT JOIN schools sc ON sc.id = c.school_id
        LEFT JOIN departments d ON d.id = c.department_id
       WHERE ${MATCH('c')} AND ($5::int IS NULL OR c.school_id = $5)
-        AND NOT EXISTS (SELECT 1 FROM subjects s WHERE lower(s.name) = lower(c.name))
+        AND NOT EXISTS (SELECT 1 FROM subjects s WHERE s.catalog_id = c.id)
       ORDER BY ${RANK('c')}
       LIMIT $3`,
     [q, code, limit, words, schoolId],
   );
   return rows;
+}
+
+// Каталогийг сургууль, тэнхимээр үзэх (хичээлүүдийн хуудас). Хичээл болж сонгогдсон мөрийг хасна.
+export async function listCatalog({ schoolId, departmentId, q, code, words, limit, offset }) {
+  // MATCH/RANK нь $1 (хайлт), $2 (код), $4 (үгс)-ийг ашигладаг тул дугаарыг тогтмол байлгана;
+  // хайлтгүй үед эдгээрийг төрөлтэй нь өгнө (төрөлгүй ашиглагдаагүй параметрийг PostgreSQL танихгүй).
+  const params = [q ?? '', code ?? '', limit, words ?? [], schoolId ?? null, departmentId ?? null, offset];
+  const where = [
+    'NOT EXISTS (SELECT 1 FROM subjects s WHERE s.catalog_id = c.id)',
+    '($5::int IS NULL OR c.school_id = $5)',
+    '($6::int IS NULL OR c.department_id = $6)',
+    q ? MATCH('c') : '($1::text = $1 AND $2::text = $2 AND $4::text[] = $4)',
+  ];
+  const { rows } = await query(
+    `SELECT c.id, c.code, c.name, c.credit::float AS credit, c.level, c.branch,
+            c.school_id AS "schoolId", sc.short_name AS "schoolShortName", sc.name AS "schoolName",
+            d.name AS "departmentName", COUNT(*) OVER ()::int AS total
+       FROM catalog_courses c
+       LEFT JOIN schools sc ON sc.id = c.school_id
+       LEFT JOIN departments d ON d.id = c.department_id
+      WHERE ${where.join(' AND ')}
+      ORDER BY ${q ? RANK('c') : "CASE c.level WHEN 'Бакалавр' THEN 0 WHEN 'Магистр' THEN 1 WHEN 'Доктор' THEN 2 ELSE 3 END, c.code NULLS LAST, c.name"}
+      LIMIT $3::int OFFSET $7::int`,
+    params,
+  );
+  return { courses: rows.map(({ total, ...r }) => r), total: rows[0]?.total ?? 0 };
 }
 
 export async function findCatalogCourse(id) {
@@ -197,7 +226,7 @@ export async function findCatalogCourse(id) {
   return rows[0] ?? null;
 }
 
-export async function codeTaken(code) {
-  const { rowCount } = await query('SELECT 1 FROM subjects WHERE code = $1', [code]);
-  return rowCount > 0;
+export async function findSubjectByCatalog(catalogId) {
+  const { rows } = await query(`SELECT ${SUBJECT_COLS} FROM ${SUBJECT_FROM} WHERE s.catalog_id = $1`, [catalogId]);
+  return rows[0] ?? null;
 }

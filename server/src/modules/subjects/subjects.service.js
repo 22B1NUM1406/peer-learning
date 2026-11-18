@@ -33,7 +33,7 @@ async function resolvePlacement({ schoolId, departmentId }) {
 
 function uniqueError(err) {
   if (err.code !== '23505') return err;
-  if (err.constraint === 'subjects_name_lower_key') return conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
+  if (err.constraint === 'subjects_manual_name_key') return conflict('Ийм нэртэй хичээл бүртгэлтэй байна');
   if (err.constraint?.includes('code')) return conflict('Ийм кодтой хичээл бүртгэлтэй байна');
   if (err.constraint?.includes('short_name')) return conflict('Ийм товчлолтой сургууль бүртгэлтэй байна');
   if (err.constraint?.startsWith('schools')) return conflict('Ийм нэртэй сургууль бүртгэлтэй байна');
@@ -137,27 +137,36 @@ export async function search(q, schoolId = null) {
   return { subjects, catalog };
 }
 
-// Каталогоос хичээл сонгоход системд хичээл үүсгэнэ (эсвэл ижил нэртэйг нь буцаана).
-// Хичээл, тэнхим, код нь албан ёсны тул ижил хичээлийг шалгах, өдрийн хязгаар шаардлагагүй.
+// Каталогийг сургууль, тэнхимээр (хайлттай ч) хуудаслан үзнэ
+export async function listCatalog({ schoolId, departmentId, q, page }) {
+  const limit = 40;
+  const words = q ? q.toLowerCase().split(/[\s,.;:()]+/).filter(Boolean).slice(0, 6) : [];
+  const code = q ? q.replace(/\s+/g, '').toUpperCase() : '';
+  const r = await repo.listCatalog({ schoolId, departmentId, q, code, words, limit, offset: (page - 1) * limit });
+  return { ...r, page, pageSize: limit };
+}
+
+// Каталогоос хичээл сонгоход системд хичээл үүсгэнэ (аль хэдийн сонгогдсон бол тэрийг нь буцаана).
+// Каталогийн мөр бүр нэг сургууль, нэгжийн хичээл тул ижил нэртэй ч өөр сургуулийн хичээл тусдаа байна.
+// Албан ёсны жагсаалтаас сонгож буй тул ижил хичээлийг шалгах, өдрийн хязгаар шаардлагагүй.
 export async function adoptCatalog(catalogId, user) {
   const course = await repo.findCatalogCourse(catalogId);
   if (!course) throw notFound('Каталогт ийм хичээл алга');
-  const existing = await repo.findSubjectByName(course.name);
+  const existing = await repo.findSubjectByCatalog(course.id);
   if (existing) {
     if (!existing.isActive) throw conflict(`“${existing.name}” хичээлийг админ идэвхгүй болгосон байна`);
     return { subject: existing, created: false };
   }
-  const code = course.code && !(await repo.codeTaken(course.code)) ? course.code : null;
   try {
     const subject = await repo.createSubject({
-      name: course.name, code, schoolId: course.schoolId, departmentId: course.departmentId,
+      name: course.name, code: course.code, schoolId: course.schoolId, departmentId: course.departmentId,
       createdBy: user.id, catalogId: course.id,
     });
     return { subject, created: true };
   } catch (err) {
     // Хоёр оюутан зэрэг сонговол нэг нь үүсгэнэ, нөгөө нь түүнийг авна
     if (err.code === '23505') {
-      const again = await repo.findSubjectByName(course.name);
+      const again = await repo.findSubjectByCatalog(course.id);
       if (again) return { subject: again, created: false };
     }
     throw uniqueError(err);

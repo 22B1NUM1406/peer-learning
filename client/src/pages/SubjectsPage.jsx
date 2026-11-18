@@ -1,7 +1,10 @@
-import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpen, FolderOpen, Plus } from 'lucide-react';
-import { subjectLabel, useApi, useSchools } from '../lib/hooks.js';
-import { Empty, ErrorText, Loading, PageHeader } from '../components/ui.jsx';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { BookOpen, ChevronRight, FolderOpen, Library, Plus, Search } from 'lucide-react';
+import { api } from '../lib/api.js';
+import { useApi, useDebounced, useSchools } from '../lib/hooks.js';
+import { Empty, ErrorText, Loading, PageHeader, SchoolOptions } from '../components/ui.jsx';
+import { adoptCatalog, courseMeta } from '../components/SubjectPicker.jsx';
 
 // Хичээлүүдийн жагсаалт (дээд цэсний "Хичээлүүд", "Материал").
 // FR-26: бүрэлдэхүүн сургуулиар бүлэглэж, сургууль ба тэнхимээр шүүнэ.
@@ -49,7 +52,7 @@ export default function SubjectsPage() {
       <div className="filter-row">
         <select aria-label="Бүрэлдэхүүн сургууль" value={school} onChange={(e) => setFilter({ school: e.target.value, department: '' })}>
           <option value="">Бүх бүрэлдэхүүн сургууль</option>
-          {schools.map((s) => <option key={s.id} value={s.id}>{s.shortName} — {s.name}</option>)}
+          <SchoolOptions schools={schools} full />
         </select>
         {departments.length > 0 && (
           <select aria-label="Тэнхим" value={department} onChange={(e) => setFilter({ department: e.target.value })}>
@@ -62,9 +65,10 @@ export default function SubjectsPage() {
       {loading && !data && <Loading rows={4} />}
       <ErrorText error={error} />
       {data && subjects.length === 0 && (
-        <Empty title="Тохирох хичээл алга" action={<Link to="/questions/new" className="btn btn-secondary btn-sm">Асуулт асуухдаа шинэ хичээл нэмэх</Link>}>
-          Энэ сургууль, тэнхимд хичээл бүртгэгдээгүй байна.
-        </Empty>
+        <p className="muted small subjects-empty">
+          {school ? 'Энэ сургууль, тэнхимийн хичээлээр одоохондоо асуулт, материал алга.' : 'Одоохондоо идэвхтэй хичээл алга.'}{' '}
+          Доорх МУИС-ийн хичээлийн жагсаалтаас хичээлээ олоорой.
+        </p>
       )}
       {groups.map((g) => (
         <section key={g.key} className="school-group">
@@ -85,6 +89,83 @@ export default function SubjectsPage() {
           </ul>
         </section>
       ))}
+
+      <CatalogBrowser school={school} department={department} resources={resources} />
     </>
+  );
+}
+
+// МУИС-ийн хичээлийн жагсаалт (db/num-courses.csv): системд хараахан идэвхжээгүй хичээлүүд.
+// Хичээл дээр дарахад хичээл үүсч (FR-26), хичээлийн хуудас нээгдэнэ.
+function CatalogBrowser({ school, department, resources }) {
+  const navigate = useNavigate();
+  const [text, setText] = useState('');
+  const q = useDebounced(text.trim(), 300);
+  const [state, setState] = useState({ courses: [], total: 0, page: 1, loading: false, error: null });
+  const [busy, setBusy] = useState(false);
+  const active = Boolean(school || department || q.length >= 2);
+
+  const load = async (page) => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const d = await api('/subjects/catalog', { params: { school, department, q: q.length >= 2 ? q : '', page } });
+      setState((s) => ({ courses: page === 1 ? d.courses : [...s.courses, ...d.courses], total: d.total, page, loading: false, error: null }));
+    } catch (err) { setState((s) => ({ ...s, loading: false, error: err })); }
+  };
+  useEffect(() => {
+    if (active) load(1); else setState({ courses: [], total: 0, page: 1, loading: false, error: null });
+  }, [school, department, q]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const open = async (course) => {
+    setBusy(true);
+    try {
+      const subject = await adoptCatalog(course.id);
+      navigate(resources ? `/subjects/${subject.id}?tab=resources` : `/subjects/${subject.id}`);
+    } catch (err) { setState((s) => ({ ...s, error: err })); setBusy(false); }
+  };
+
+  return (
+    <section className="catalog-browser">
+      <div className="catalog-head">
+        <h2><Library size={18} />МУИС-ийн хичээлийн жагсаалт</h2>
+        <label className="search-box catalog-search">
+          <Search size={16} />
+          <input type="search" placeholder="Хичээлийн нэр эсвэл код" aria-label="МУИС-ийн хичээл хайх" value={text} onChange={(e) => setText(e.target.value)} />
+        </label>
+      </div>
+      {!active ? (
+        <p className="muted small">Дээрээс сургуулиа сонгох эсвэл хичээлийн нэр, кодоо бичиж МУИС-ийн бүх хичээлээс хайгаарай.</p>
+      ) : (
+        <>
+          <ErrorText error={state.error} />
+          {state.loading && state.courses.length === 0 ? <Loading rows={3} /> : state.courses.length === 0 ? (
+            <p className="muted small">Тохирох хичээл олдсонгүй.</p>
+          ) : (
+            <>
+              <p className="muted small catalog-total">{state.total} хичээл</p>
+              <ul className="catalog-list">
+                {state.courses.map((c) => (
+                  <li key={c.id}>
+                    <button type="button" className="catalog-row" onClick={() => open(c)} disabled={busy}>
+                      {c.code && <span className="subject-code">{c.code}</span>}
+                      <span className="grow">
+                        <span className="catalog-name">{c.name}</span>
+                        <span className="muted small block">{courseMeta(c)}</span>
+                      </span>
+                      <ChevronRight size={16} className="muted" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {state.courses.length < state.total && (
+                <button type="button" className="btn btn-secondary full load-more" onClick={() => load(state.page + 1)} disabled={state.loading}>
+                  {state.loading ? 'Ачаалж байна…' : `Цааш үзэх (${state.total - state.courses.length})`}
+                </button>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </section>
   );
 }
