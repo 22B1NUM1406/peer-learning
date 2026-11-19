@@ -99,3 +99,15 @@ test('админ асуултыг нуухад түүний хариултууд
   await as(admin).patch(`/api/admin/reports/${report.id}`, { action: 'hide' });
   assert.equal(await reputationOf(helper.id), 0);
 });
+
+test('хариу бүрт Content-Security-Policy тавигдана; HTTP-ээр ирсэн хүсэлтэд HSTS тавихгүй', async () => {
+  const res = await api().get('/api/health');
+  const csp = res.headers['content-security-policy'];
+  assert.ok(csp, 'CSP толгой байх ёстой');
+  for (const d of ["default-src 'self'", "script-src 'self'", "object-src 'none'", "frame-ancestors 'none'"]) assert.ok(csp.includes(d), d);
+  assert.ok(!/unsafe-inline|unsafe-eval/.test(csp), 'unsafe-* зөвшөөрөхгүй');
+  assert.equal(res.headers['strict-transport-security'], undefined);
+  // Proxy-д итгэдэггүй орчинд X-Forwarded-Proto толгойгоор HTTPS гэж хуурч чадахгүй
+  const spoof = await api().get('/api/health').set('X-Forwarded-Proto', 'https');
+  assert.equal(spoof.headers['strict-transport-security'], undefined);
+});

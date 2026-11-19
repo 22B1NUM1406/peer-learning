@@ -6,6 +6,10 @@ import react from '@vitejs/plugin-react';
 // Ингэснээр production-ийн монолиттой адил cookie, CORS-гүй орчинд хөгжүүлнэ.
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Жижиг фонтыг data: URI болгон CSS-д шигтгэхгүй: Content-Security-Policy нь font-src 'self' (server/src/app.js)
+    assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:3000',

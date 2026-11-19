@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { query } from './db.js';
@@ -22,6 +23,22 @@ import { messageRoutes } from './modules/messages/messages.routes.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIST = path.resolve(__dirname, '../../client/dist');
 
+// Content-Security-Policy: скрипт, стиль, фонт, зураг, холболтыг зөвхөн өөрийн домэйноос зөвшөөрнө.
+// Frontend гадны эх сурвалж ашигладаггүй (фонт нь @fontsource-оор хамт бүтээгддэг), inline скрипт байхгүй.
+// data: нь CSS доторх SVG сум, blob: нь файл сонгоход урьдчилан харахад хэрэгтэй.
+export const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 export function createApp() {
   const app = express();
 
@@ -35,9 +52,14 @@ export function createApp() {
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('X-Frame-Options', 'DENY');                 // өөр сайт iframe-д оруулахгүй (clickjacking)
     res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.set('Content-Security-Policy', CSP);
+    // HSTS: хөтөч дараагийн удаа энэ домэйнд зөвхөн HTTPS-ээр хандана. HTTP-ээр ирсэн хариунд хөтөч үл тоодог тул HTTPS үед л тавина.
+    if (req.secure) res.set('Strict-Transport-Security', 'max-age=15552000');
     next();
   });
 
+  // JS, CSS, JSON хариуг gzip-ээр шахна (Lighthouse: ~350 KB хэмнэлт)
+  app.use(compression());
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
