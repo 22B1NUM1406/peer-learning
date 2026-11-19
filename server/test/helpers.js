@@ -15,7 +15,7 @@ export const api = () => request(app);
 
 export async function resetDb() {
   resetLoginLimits();
-  await pool.query(`TRUNCATE users, subjects, catalog_courses, schools, departments, bookmarks, sessions, questions, answers, votes, comments,
+  await pool.query(`TRUNCATE users, subjects, schools, departments, bookmarks, sessions, questions, answers, votes, comments,
     resources, reports, messages, notifications, user_subjects RESTART IDENTITY CASCADE`);
 }
 

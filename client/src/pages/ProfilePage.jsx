@@ -5,10 +5,10 @@ import { subjectLabel, useApi, useSchools, useSubjects } from '../lib/hooks.js';
 import { useAuth } from '../lib/auth.jsx';
 import { timeAgo } from '../lib/format.js';
 import { Avatar, Empty, ErrorText, Loading, Tabs, SchoolOptions } from '../components/ui.jsx';
-import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Library, Pencil, Plus, X } from 'lucide-react';
+import { Award, Bookmark, Lock, MessageCircle, MessageSquareText, MessagesSquare, Pencil, Plus, X } from 'lucide-react';
 import { useFeedback } from '../lib/feedback.jsx';
 import { notifyProfileChanged } from '../components/Layout.jsx';
-import { CatalogItem, NewSubject, adoptCatalog, useCatalogSearch } from '../components/SubjectPicker.jsx';
+import { NewSubject } from '../components/SubjectPicker.jsx';
 
 // P7: Профайл (FR-03, FR-04, FR-22, FR-24) + түвшин, тэмдэг (санал 4), хувийн статистик ба хадгалсан (санал 7)
 export default function ProfilePage() {
@@ -118,16 +118,6 @@ function EditProfile({ user, onSaved }) {
   const shown = subjects
     .filter((s) => !f || s.name.toLowerCase().includes(f) || (s.code ?? '').toLowerCase().includes(f))
     .sort((a, b) => Number(initialIds.includes(b.id)) - Number(initialIds.includes(a.id)));
-  const { catalog, loading: catalogLoading } = useCatalogSearch(filter);
-  const [adoptError, setAdoptError] = useState(null);
-  const pickCatalog = async (course) => {
-    setAdoptError(null);
-    try {
-      const subject = await adoptCatalog(course.id);
-      setAdded((list) => [...list, subject]);
-      choose(subject);
-    } catch (err) { setAdoptError(err); }
-  };
   const toggle = (sid) => setHelpIds((ids) => (ids.includes(sid) ? ids.filter((x) => x !== sid) : [...ids, sid]));
   // Нэмсэн эсвэл ижил төстэйгээс сонгосон хичээлийг шууд туслах хичээлд оруулж, жагсаалтад харуулна
   const choose = (subject) => {
@@ -178,19 +168,8 @@ function EditProfile({ user, onSaved }) {
               <input type="checkbox" checked={helpIds.includes(s.id)} onChange={() => toggle(s.id)} /> {subjectLabel(s)}
             </label>
           ))}
-          {shown.length === 0 && !catalog.length && (
-            <span className="muted small">{catalogLoading ? 'Хайж байна…' : 'Тохирох хичээл алга'}</span>
-          )}
+          {shown.length === 0 && <span className="muted small">Тохирох хичээл алга</span>}
         </div>
-        {catalog.length > 0 && (
-          <div className="catalog-suggest">
-            <span className="picker-group"><Library size={14} />МУИС-ийн хичээлийн каталогоос нэмэх</span>
-            <ul className="picker-list">
-              {catalog.map((c) => <li key={c.id}><CatalogItem course={c} onPick={pickCatalog} /></li>)}
-            </ul>
-          </div>
-        )}
-        <ErrorText error={adoptError} />
         {adding ? (
           <NewSubject
             schools={schools}
@@ -201,7 +180,7 @@ function EditProfile({ user, onSaved }) {
           />
         ) : (
           <button type="button" className="link-btn picker-add" onClick={() => setAdding(true)}>
-            <Plus size={15} />{filter.trim() && shown.length === 0 && !catalog.length ? `“${filter.trim()}” хичээлийг гараар нэмэх` : 'Каталогт байхгүй бол шинэ хичээл нэмэх'}
+            <Plus size={15} />{filter.trim() && shown.length === 0 ? `“${filter.trim()}” хичээлийг нэмэх` : 'Жагсаалтад байхгүй бол шинэ хичээл нэмэх'}
           </button>
         )}
       </fieldset>

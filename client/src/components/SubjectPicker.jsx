@@ -1,43 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Check, Library, Plus, Search, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BookOpen, Check, Plus, Search, X } from 'lucide-react';
 import { api } from '../lib/api.js';
-import { subjectLabel, useDebounced } from '../lib/hooks.js';
+import { subjectLabel } from '../lib/hooks.js';
 import { ErrorText, SchoolOptions } from './ui.jsx';
-
-// МУИС-ийн хичээлийн каталогоос хайх (SiSi-ээс импортолсон). Системд хараахан байхгүй хичээлүүдийг буцаана;
-// сонгоход adoptCatalog() хичээлийг үүсгэнэ (байвал тэрийг нь буцаана).
-export function useCatalogSearch(text, school = '') {
-  const q = useDebounced(text.trim(), 250);
-  const key = `${q}|${school}`;
-  const [state, setState] = useState({ key: '', catalog: [] });
-  useEffect(() => {
-    if (q.length < 2) { setState({ key, catalog: [] }); return undefined; }
-    let cancelled = false;
-    api('/subjects/search', { params: { q, school } })
-      .then((d) => { if (!cancelled) setState({ key, catalog: d.catalog }); })
-      .catch(() => { if (!cancelled) setState({ key, catalog: [] }); });
-    return () => { cancelled = true; };
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { catalog: state.catalog, loading: text.trim().length >= 2 && state.key !== `${text.trim()}|${school}` };
-}
-
-export const adoptCatalog = (id) => api(`/subjects/catalog/${id}`, { method: 'POST' }).then((d) => d.subject);
-
-export const courseMeta = (c) => [c.schoolShortName, c.departmentName || c.branch, c.level, c.credit != null && `${c.credit} кредит`]
-  .filter(Boolean).join(' · ');
-
-// Каталогийн нэг мөр: код, нэр, сургууль, тэнхим, кредит
-export function CatalogItem({ course, onPick, busy, icon = <Plus size={16} className="picker-check" /> }) {
-  return (
-    <button type="button" onClick={() => onPick(course)} disabled={busy}>
-      <span className="grow">
-        <span className="strong">{course.code ? `${course.code} · ` : ''}{course.name}</span>
-        <span className="muted small block">{courseMeta(course)}</span>
-      </span>
-      {icon}
-    </button>
-  );
-}
 
 // FR-26: асуулт асуухад хичээл сонгох. Гурван шаттай цэсний оронд нэг хайлттай талбар:
 // нэр эсвэл кодоор хайна, хүсвэл бүрэлдэхүүн сургуулиар шүүнэ (заавал биш).
@@ -46,21 +11,7 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
   const [text, setText] = useState('');
   const [schoolId, setSchoolId] = useState('');
   const [adding, setAdding] = useState(false);
-  const [adoptError, setAdoptError] = useState(null);
-  const [busy, setBusy] = useState(false);
   const selected = subjects.find((s) => String(s.id) === String(value));
-  const { catalog: catalogShown, loading: catalogLoading } = useCatalogSearch(selected ? '' : text, schoolId);
-
-  const pickCatalog = async (course) => {
-    setBusy(true);
-    setAdoptError(null);
-    try {
-      const subject = await adoptCatalog(course.id);
-      setText('');
-      onCreated?.(subject);
-      onChange(String(subject.id));
-    } catch (err) { setAdoptError(err); } finally { setBusy(false); }
-  };
 
   const matches = useMemo(() => {
     const t = text.trim().toLowerCase();
@@ -110,9 +61,7 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
       </div>
       <ul className="picker-list" role="listbox" aria-label="Хичээл">
         {loading && <li className="muted small pad">Ачаалж байна…</li>}
-        {!loading && matches.length === 0 && !catalogShown.length && (
-          <li className="muted small pad">{catalogLoading ? 'Хайж байна…' : 'Тохирох хичээл олдсонгүй.'}</li>
-        )}
+        {!loading && matches.length === 0 && <li className="muted small pad">Тохирох хичээл олдсонгүй.</li>}
         {matches.map((s) => (
           <li key={s.id}>
             <button type="button" role="option" aria-selected="false" onClick={() => onChange(String(s.id))}>
@@ -124,19 +73,9 @@ export default function SubjectPicker({ subjects, schools, value, onChange, onCr
             </button>
           </li>
         ))}
-        {/* МУИС-ийн каталогоос: системд хараахан байхгүй, албан ёсны код, тэнхимтэй хичээлүүд */}
-        {catalogShown.length > 0 && (
-          <>
-            <li className="picker-group" role="presentation"><Library size={14} />МУИС-ийн хичээлийн каталогоос</li>
-            {catalogShown.map((c) => (
-              <li key={`c${c.id}`}><CatalogItem course={c} onPick={pickCatalog} busy={busy} /></li>
-            ))}
-          </>
-        )}
       </ul>
-      <ErrorText error={adoptError} />
       <button type="button" className="link-btn picker-add" onClick={() => setAdding(true)}>
-        <Plus size={15} />{text.trim() ? `“${text.trim()}” хичээлийг гараар нэмэх` : 'Каталогт байхгүй бол шинэ хичээл нэмэх'}
+        <Plus size={15} />{text.trim() ? `“${text.trim()}” хичээлийг нэмэх` : 'Жагсаалтад байхгүй бол шинэ хичээл нэмэх'}
       </button>
       {/* Маягтын заавал бөглөх шалгалт: хичээл сонгоогүй бол илгээхгүй */}
       {required && <input className="picker-required" tabIndex={-1} aria-hidden="true" required value="" onChange={() => {}} onInvalid={(e) => e.target.setCustomValidity('Хичээл сонгоно уу')} />}

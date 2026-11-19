@@ -639,11 +639,6 @@ p.error { display: block; }
 .picker-check { color: var(--brand); opacity: 0; }
 .picker-list button:hover .picker-check { opacity: 1; }
 .picker-add { justify-self: start; font-weight: 550; }
-.picker-group { display: flex; align-items: center; gap: 6px; padding: 7px 12px 5px; background: var(--gray-50); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); font-weight: 620; color: var(--muted); position: sticky; top: 0; z-index: 1; }
-.picker-list button:disabled { cursor: progress; opacity: .6; }
-.catalog-suggest { margin-top: 10px; }
-.catalog-suggest .picker-group { border: 1px solid var(--line-strong); border-bottom: none; border-radius: var(--r-sm) var(--r-sm) 0 0; position: static; }
-.catalog-suggest .picker-list { border-radius: 0 0 var(--r-sm) var(--r-sm); }
 .picker-required { position: absolute; opacity: 0; pointer-events: none; height: 1px; width: 1px; min-width: 0; padding: 0; border: 0; bottom: 0; left: 0; }
 .picker-selected { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--brand); background: var(--brand-soft); border-radius: var(--r-sm); font-weight: 450; }
 .new-subject { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 14px 16px; background: var(--sunken); display: flex; flex-direction: column; gap: 12px; }
@@ -986,23 +981,6 @@ p.error { display: block; }
   .bottomnav .dot { position: absolute; top: 4px; right: calc(50% - 16px); margin: 0; }
 }
 
-/* МУИС-ийн хичээлийн жагсаалт (хичээлүүдийн хуудас) */
-.subjects-empty { margin-bottom: 8px; }
-.catalog-browser { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
-.catalog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-.catalog-head h2 { display: flex; align-items: center; gap: 8px; font-size: var(--fs-lg); margin: 0; }
-.catalog-head h2 svg { color: var(--brand); }
-.catalog-search { max-width: 320px; flex: 1 1 220px; }
-.catalog-total { margin-bottom: 6px; }
-.catalog-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.catalog-list li + li { border-top: 1px solid var(--line); }
-.catalog-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border: none; background: none; font: inherit; text-align: left; color: var(--text); cursor: pointer; }
-.catalog-row:hover { background: var(--gray-25); }
-.catalog-row:hover .catalog-name { color: var(--brand); }
-.catalog-row:disabled { cursor: progress; opacity: .6; }
-.catalog-row .subject-code { flex: none; min-width: 72px; }
-.catalog-name { font-weight: 580; font-size: var(--fs-sm); }
-@media (max-width: 720px) { .catalog-row .subject-code { min-width: 0; } }
 
 @media (max-width: 720px) {
   .list-toolbar { flex-direction: column; align-items: stretch; }
