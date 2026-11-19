@@ -1,9 +1,9 @@
--- 005: МУИС-ийн хичээлийн каталог (SiSi-ээс импортолсон, db/num-courses.tsv).
+-- 005: МУИС-ийн хичээлийн каталог (db/num-courses.tsv).
 -- Каталог нь зөвхөн хайлтад зориулсан лавлах: оюутан тэндээс хичээл сонгоход л
 -- subjects хүснэгтэд хичээл үүснэ. Ингэснээр мянга гаруй хичээл жагсаалт, шүүлтүүрийг дүүргэхгүй.
 CREATE TABLE IF NOT EXISTS catalog_courses (
   id            SERIAL PRIMARY KEY,
-  sisi_id       INTEGER      NOT NULL UNIQUE,      -- SiSi-ийн courseid: дахин импортлоход шинэчлэх түлхүүр
+  ext_id        INTEGER      NOT NULL UNIQUE,      -- эх жагсаалтын дугаар: дахин импортлоход шинэчлэх түлхүүр
   code          VARCHAR(20),
   name          VARCHAR(200) NOT NULL,
   credit        NUMERIC(4, 1),

@@ -22,7 +22,7 @@ ALTER TABLE departments ADD COLUMN IF NOT EXISTS branch VARCHAR(120);
 
 -- Каталог: мөр бүр нэг сургууль, нэгжийн нэг түвшний хичээл. Ижил код өөр сургуульд өөр хичээл
 -- байж болох тул түлхүүр нь бүх талбарын хослол (source_key).
-ALTER TABLE catalog_courses DROP COLUMN IF EXISTS sisi_id;
+ALTER TABLE catalog_courses DROP COLUMN IF EXISTS ext_id;
 ALTER TABLE catalog_courses ADD COLUMN IF NOT EXISTS level VARCHAR(30);
 ALTER TABLE catalog_courses ADD COLUMN IF NOT EXISTS branch VARCHAR(120);
 ALTER TABLE catalog_courses ADD COLUMN IF NOT EXISTS source_key TEXT;
