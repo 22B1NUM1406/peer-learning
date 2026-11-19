@@ -1,13 +1,20 @@
 -- 006: МУИС-ийн сургууль, салбар, тэнхим, хичээлийг db/num-courses.csv (МУИС-ийн хичээлийн жагсаалт)
 -- -ээр бүхэлд нь солино. Өмнөх бүтэц (ШУС-ийг БУС/НУС/ХУС гэж салгасан гэх мэт) ба хичээлүүд алдаатай
 -- байсан тул хэрэглэгчийн шийдвэрээр хуучин хичээл ба тэдгээрт холбогдсон асуулт, хариулт, материалыг
--- устгав (TRUNCATE ... CASCADE). Нэг удаа ажиллана (schema_migrations); шинэ бүтцийг seed.js оруулна.
+-- устгав (TRUNCATE ... CASCADE). schema_migrations-аар нэг удаа ажиллана; шинэ бүтцийг seed.js оруулна.
 
-TRUNCATE subjects, catalog_courses, departments, schools RESTART IDENTITY CASCADE;
--- Устсан хариулт, үнэлгээнээс авсан оноо үлдэхгүй
-UPDATE users SET reputation = 0;
--- Оюутны сургууль: БУС, НУС, ХУС нь Шинжлэх ухааны сургуулийн салбарууд
-UPDATE users SET faculty = 'ШУС' WHERE faculty IN ('БУС', 'НУС', 'ХУС');
+-- Хамгаалалт: зөвхөн хуучин бүтэцтэй (schools.kind баганагүй) өгөгдлийн санд устгана.
+-- (Анх migration бүр сервер асах бүрд ажилладаг байсан тул дахин ажиллаж өгөгдөл устгахаас сэргийлэв.)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schools' AND column_name = 'kind') THEN
+    TRUNCATE subjects, catalog_courses, departments, schools RESTART IDENTITY CASCADE;
+    -- Устсан хариулт, үнэлгээнээс авсан оноо үлдэхгүй
+    UPDATE users SET reputation = 0;
+    -- Оюутны сургууль: БУС, НУС, ХУС нь Шинжлэх ухааны сургуулийн салбарууд
+    UPDATE users SET faculty = 'ШУС' WHERE faculty IN ('БУС', 'НУС', 'ХУС');
+  END IF;
+END $$;
 
 -- Сургуулийн ангилал (Бүрэлдэхүүн сургууль / Салбар сургууль), тэнхимийн харьяалах салбар
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS kind VARCHAR(40);
